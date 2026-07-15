@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+:root {
+  --obsidian: #0a0a0f;
+  --surface: #12121a;
+  --surface-2: #1a1a24;
+  --border: #23232f;
+  --border-hover: #2f2f3d;
+  --cream: #F0EDE6;
+  --muted: #6b7280;
+  --amber: #C8A84B;
+  --amber-dim: rgba(200, 168, 75, 0.12);
+}
+
+html, body {
+  background: var(--obsidian);
+  color: var(--cream);
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.glass {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--obsidian); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
