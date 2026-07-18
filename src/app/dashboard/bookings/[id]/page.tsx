@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ArrowLeft, Loader2, User, BedDouble, Calendar, DollarSign, CreditCard, Plus, X, Printer, CheckCircle, Pencil } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/Toast'
+import { BookingRooms } from '@/components/BookingRooms'
 
 type Booking = {
   id: string
@@ -414,6 +415,8 @@ export default function BookingDetailPage() {
               <p className="text-sm" style={{ color: 'var(--muted)' }}>No room attached</p>
             )}
           </div>
+
+          <BookingRooms bookingId={booking.id} hotelId={booking.hotel_id} primaryRoomId={booking.rooms?.id ?? null} />
         </div>
       </div>
 

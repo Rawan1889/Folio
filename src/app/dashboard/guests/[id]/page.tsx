@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Loader2, Mail, Phone, Globe, Star, CalendarDays, DollarSign, BedDouble, Save } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { GuestDocs } from '@/components/GuestDocs'
 
 type Guest = {
   id: string
@@ -16,6 +17,7 @@ type Guest = {
   vip: boolean
   notes: string | null
   created_at: string
+  hotel_id: string
 }
 
 type BookingRow = {
@@ -58,7 +60,7 @@ export default function GuestProfilePage() {
   const loadGuest = useCallback(async () => {
     const { data: g } = await supabase
       .from('guests')
-      .select('id, full_name, email, phone, nationality, id_number, vip, notes, created_at')
+      .select('id, full_name, email, phone, nationality, id_number, vip, notes, created_at, hotel_id')
       .eq('id', id)
       .single()
 
@@ -159,7 +161,7 @@ export default function GuestProfilePage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Guest info / edit form */}
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 space-y-4">
           {editing ? (
             <form onSubmit={saveGuest} className="glass p-5 space-y-3">
               <h2 className="text-sm font-semibold" style={{ color: 'var(--cream)' }}>Edit Guest</h2>
@@ -216,6 +218,7 @@ export default function GuestProfilePage() {
               )}
             </div>
           )}
+          <GuestDocs guestId={guest.id} hotelId={guest.hotel_id} />
         </div>
 
         {/* Booking history */}

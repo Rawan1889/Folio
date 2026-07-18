@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, BedDouble, CalendarDays, Users, Receipt, BarChart3, Settings, Hotel, LogOut, Menu, Plus, ChevronDown, Check, LayoutGrid, Search, UserCheck, Sparkles, Moon } from 'lucide-react'
+import { LayoutDashboard, BedDouble, CalendarDays, Users, Receipt, BarChart3, Settings, Hotel, LogOut, Menu, Plus, ChevronDown, Check, LayoutGrid, Search, UserCheck, Sparkles, Moon, Users2, Tag } from 'lucide-react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
 const nav = [
@@ -18,6 +18,8 @@ const nav = [
   { href: '/dashboard/housekeeping', label: 'Housekeeping', icon: Sparkles },
   { href: '/dashboard/audit', label: 'Night Audit', icon: Moon },
   { href: '/dashboard/finance', label: 'Finance', icon: Receipt },
+  { href: '/dashboard/rates', label: 'Rate Plans', icon: Tag },
+  { href: '/dashboard/staff', label: 'Staff', icon: Users2 },
   { href: '/dashboard/reports', label: 'Reports', icon: BarChart3 },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ]
