@@ -2,9 +2,9 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, BedDouble, CalendarDays, Users, Receipt, BarChart3, Settings, Hotel, LogOut, Menu, Plus } from 'lucide-react'
+import { LayoutDashboard, BedDouble, CalendarDays, Users, Receipt, BarChart3, Settings, Hotel, LogOut, Menu, Plus, ChevronDown, Check } from 'lucide-react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
 const nav = [
@@ -24,10 +24,45 @@ interface SidebarProps {
   hotelId?: string | null
 }
 
-export default function Sidebar({ hotelName = 'No Hotel', userName = 'Admin', isSuperAdmin }: SidebarProps) {
+export default function Sidebar({ hotelName = 'No Hotel', userName = 'Admin', isSuperAdmin, hotelId }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [hotelPickerOpen, setHotelPickerOpen] = useState(false)
+  const [allHotels, setAllHotels] = useState<{ id: string; name: string }[]>([])
+  const [selectedHotelId, setSelectedHotelId] = useState<string | null>(null)
+  const [displayHotelName, setDisplayHotelName] = useState(hotelName)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setSelectedHotelId(localStorage.getItem('folio_hotel_id'))
+    }
+  }, [])
+
+  async function openHotelPicker() {
+    if (allHotels.length === 0) {
+      const supabase = createClient()
+      const { data } = await supabase.from('hotels').select('id, name').order('name')
+      setAllHotels(data ?? [])
+    }
+    setHotelPickerOpen(true)
+  }
+
+  function pickHotel(id: string, name: string) {
+    localStorage.setItem('folio_hotel_id', id)
+    setSelectedHotelId(id)
+    setDisplayHotelName(name)
+    setHotelPickerOpen(false)
+    window.location.href = '/dashboard'
+  }
+
+  function clearHotelOverride() {
+    localStorage.removeItem('folio_hotel_id')
+    setSelectedHotelId(null)
+    setDisplayHotelName(hotelName)
+    setHotelPickerOpen(false)
+    window.location.href = '/dashboard'
+  }
 
   async function handleLogout() {
     if (isSupabaseConfigured()) {
@@ -59,12 +94,39 @@ export default function Sidebar({ hotelName = 'No Hotel', userName = 'Admin', is
       </div>
 
       {/* Hotel card */}
-      <div className="glass px-3 py-2.5 flex items-center gap-2.5 cursor-pointer hover:bg-white/[0.06]">
+      <div
+        className="glass px-3 py-2.5 flex items-center gap-2.5 hover:bg-white/[0.06]"
+        style={{ cursor: isSuperAdmin ? 'pointer' : 'default' }}
+        onClick={isSuperAdmin ? openHotelPicker : undefined}>
         <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'var(--tile-orange)' }}>
           <Hotel size={13} style={{ color: '#1a1a1a' }} />
         </div>
-        <span className="text-sm font-medium flex-1 truncate" style={{ color: 'var(--cream)' }}>{hotelName}</span>
+        <span className="text-sm font-medium flex-1 truncate" style={{ color: 'var(--cream)' }}>
+          {selectedHotelId ? (allHotels.find(h => h.id === selectedHotelId)?.name ?? displayHotelName) : displayHotelName}
+        </span>
+        {isSuperAdmin && <ChevronDown size={12} style={{ color: 'var(--muted)', flexShrink: 0 }} />}
       </div>
+
+      {/* Hotel picker dropdown */}
+      {hotelPickerOpen && (
+        <div className="glass-strong p-2 space-y-0.5">
+          {allHotels.map(h => (
+            <button key={h.id} onClick={() => pickHotel(h.id, h.name)}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm text-left hover:bg-white/[0.06]"
+              style={{ color: 'var(--cream)' }}>
+              <span className="truncate">{h.name}</span>
+              {selectedHotelId === h.id && <Check size={12} style={{ color: 'var(--amber)', flexShrink: 0 }} />}
+            </button>
+          ))}
+          {selectedHotelId && (
+            <button onClick={clearHotelOverride}
+              className="w-full px-3 py-2 rounded-xl text-xs text-left hover:bg-white/[0.06]"
+              style={{ color: 'var(--muted)' }}>
+              Reset to default
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Nav section header */}
       <div className="px-2 mt-3">

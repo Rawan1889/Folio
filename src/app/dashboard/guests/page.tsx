@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, Search, Star, Mail, Phone, Globe, X, Loader2, Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import Link from 'next/link'
 
 type Guest = {
   id: string
@@ -158,7 +159,7 @@ export default function GuestsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {filtered.map((g, i) => (
-            <div key={g.id} className="glass p-4">
+            <Link key={g.id} href={`/dashboard/guests/${g.id}`} className="glass p-4 block hover:bg-white/[0.03] transition-colors">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0"
@@ -196,7 +197,7 @@ export default function GuestsPage() {
                   {g.notes}
                 </p>
               )}
-            </div>
+            </Link>
           ))}
         </div>
       )}

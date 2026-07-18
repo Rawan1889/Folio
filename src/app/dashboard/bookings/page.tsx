@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, Search, X, Loader2, CalendarDays } from 'lucide-react'
+import { Plus, Search, X, Loader2, CalendarDays, CheckCircle, LayoutGrid } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import Link from 'next/link'
 
 type Booking = {
   id: string
@@ -12,7 +13,7 @@ type Booking = {
   status: string
   source: string | null
   guests: { full_name: string } | null
-  rooms: { number: string } | null
+  rooms: { id: string; number: string } | null
 }
 
 type Room = { id: string; number: string }
@@ -31,6 +32,7 @@ export default function BookingsPage() {
   const [hotelId, setHotelId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [quickUpdating, setQuickUpdating] = useState<string | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
@@ -50,7 +52,7 @@ export default function BookingsPage() {
   const loadBookings = useCallback(async (hId: string) => {
     const { data } = await supabase
       .from('bookings')
-      .select('id, check_in, check_out, total_amount, status, source, guests(full_name), rooms(number)')
+      .select('id, check_in, check_out, total_amount, status, source, guests(full_name), rooms(id, number)')
       .eq('hotel_id', hId)
       .order('check_in', { ascending: false })
     setBookings((data as unknown as Booking[]) ?? [])
@@ -83,6 +85,14 @@ export default function BookingsPage() {
     }
     init()
   }, [loadBookings, supabase])
+
+  async function quickCheckIn(bookingId: string, roomId: string | null) {
+    setQuickUpdating(bookingId)
+    await supabase.from('bookings').update({ status: 'checked_in' }).eq('id', bookingId)
+    if (roomId) await supabase.from('rooms').update({ status: 'occupied' }).eq('id', roomId)
+    if (hotelId) await loadBookings(hotelId)
+    setQuickUpdating(null)
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -130,11 +140,18 @@ export default function BookingsPage() {
             {loading ? 'Loading…' : `${filtered.length} bookings`}
           </p>
         </div>
-        <button onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90"
-          style={{ background: 'var(--tile-yellow)', color: '#1a1a1a' }}>
-          <Plus size={15} /> New Booking
-        </button>
+        <div className="flex items-center gap-2">
+          <Link href="/dashboard/bookings/calendar"
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-medium glass hover:bg-white/[0.06]"
+            style={{ color: 'var(--cream)' }}>
+            <LayoutGrid size={14} /> Calendar
+          </Link>
+          <button onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90"
+            style={{ background: 'var(--tile-yellow)', color: '#1a1a1a' }}>
+            <Plus size={15} /> New Booking
+          </button>
+        </div>
       </div>
 
       {/* Search */}
@@ -178,7 +195,7 @@ export default function BookingsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                  {['Guest', 'Room', 'Check-in', 'Check-out', 'Total', 'Source', 'Status'].map(h => (
+                  {['Guest', 'Room', 'Check-in', 'Check-out', 'Total', 'Source', 'Status', ''].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-medium" style={{ color: 'var(--muted)' }}>{h}</th>
                   ))}
                 </tr>
@@ -186,7 +203,11 @@ export default function BookingsPage() {
               <tbody>
                 {filtered.map(b => (
                   <tr key={b.id} className="transition-colors hover:bg-white/[0.02]" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                    <td className="px-4 py-3 font-medium" style={{ color: 'var(--cream)' }}>{b.guests?.full_name ?? '—'}</td>
+                    <td className="px-4 py-3">
+                      <Link href={`/dashboard/bookings/${b.id}`} className="font-medium hover:underline" style={{ color: 'var(--cream)' }}>
+                        {b.guests?.full_name ?? '—'}
+                      </Link>
+                    </td>
                     <td className="px-4 py-3" style={{ color: 'var(--muted)' }}>Rm {b.rooms?.number ?? '—'}</td>
                     <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted)' }}>{b.check_in}</td>
                     <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted)' }}>{b.check_out}</td>
@@ -196,6 +217,18 @@ export default function BookingsPage() {
                       <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${statusColors[b.status] ?? 'bg-white/10 text-white/50 border-white/20'}`}>
                         {b.status.replace('_', ' ')}
                       </span>
+                    </td>
+                    <td className="px-3 py-3">
+                      {b.status === 'confirmed' && b.check_in <= new Date().toISOString().split('T')[0] && (
+                        <button
+                          onClick={() => quickCheckIn(b.id, (b.rooms as { id: string; number: string } | null)?.id ?? null)}
+                          disabled={quickUpdating === b.id}
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium disabled:opacity-50"
+                          style={{ background: 'var(--tile-green)', color: '#1a1a1a' }}>
+                          {quickUpdating === b.id ? <Loader2 size={10} className="animate-spin" /> : <CheckCircle size={10} />}
+                          Check In
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

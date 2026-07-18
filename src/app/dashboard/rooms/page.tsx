@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { BedDouble, Plus, Search, ImageIcon, MoreVertical, X, Film, Loader2, AlertCircle } from 'lucide-react'
+import { BedDouble, Plus, Search, ImageIcon, X, Film, Loader2, AlertCircle } from 'lucide-react'
+import Link from 'next/link'
 import { getStatusColor } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 
@@ -186,7 +187,7 @@ export default function RoomsPage() {
           {filtered.map(room => {
             const cover = room.room_media?.find(m => m.is_cover) ?? room.room_media?.[0]
             return (
-              <div key={room.id} className="glass overflow-hidden cursor-pointer group hover:border-white/10">
+              <Link key={room.id} href={`/dashboard/rooms/${room.id}`} className="glass overflow-hidden cursor-pointer group hover:border-white/10 block">
                 <div className="h-28 flex items-center justify-center relative overflow-hidden" style={{ background: 'var(--surface-2)' }}>
                   {cover ? (
                     cover.type === 'image'
@@ -207,7 +208,7 @@ export default function RoomsPage() {
                     <span className="text-xs font-semibold" style={{ color: 'var(--amber)' }}>${room.room_types?.base_price ?? 0}/n</span>
                   </div>
                 </div>
-              </div>
+              </Link>
             )
           })}
         </div>
