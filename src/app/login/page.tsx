@@ -23,53 +23,48 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--obsidian)' }}>
+    <div className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--amber)' }}>
-              <span className="text-black font-bold text-sm">F</span>
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-2.5 mb-4">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'var(--tile-yellow)' }}>
+              <span className="font-bold text-base" style={{ color: '#1a1a1a' }}>F</span>
             </div>
-            <span className="text-xl font-semibold tracking-tight" style={{ color: 'var(--cream)' }}>Folio</span>
           </div>
-          <p className="text-sm" style={{ color: 'var(--muted)' }}>Hotel Management Platform</p>
+          <h1 className="text-3xl serif" style={{ color: 'var(--cream)' }}>Welcome to <span className="serif-italic">Folio</span></h1>
+          <p className="text-sm mt-2" style={{ color: 'var(--muted)' }}>Every stay, on record</p>
         </div>
 
         {!configured && (
-          <div className="mb-4 px-4 py-3 rounded-lg text-xs border" style={{ background: '#C8A84B10', borderColor: '#C8A84B30', color: '#C8A84B' }}>
+          <div className="mb-4 px-4 py-3 rounded-xl text-xs glass" style={{ color: 'var(--amber)' }}>
             <strong>Demo mode</strong> — Supabase not connected. Click Sign in to explore the UI.
           </div>
         )}
 
-        <div className="glass p-8">
-          <h1 className="text-lg font-semibold mb-1" style={{ color: 'var(--cream)' }}>Sign in</h1>
-          <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>Access your hotel dashboard</p>
-
+        <div className="glass-strong p-7">
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>Email</label>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} required={configured} placeholder="you@hotel.com"
-                className="w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition-all"
-                style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--cream)' }} />
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm outline-none"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--cream)' }} />
             </div>
             <div>
               <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>Password</label>
               <input type="password" value={password} onChange={e => setPassword(e.target.value)} required={configured} placeholder="••••••••"
-                className="w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition-all"
-                style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--cream)' }} />
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm outline-none"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--cream)' }} />
             </div>
 
-            {error && <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{error}</p>}
+            {error && <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">{error}</p>}
 
             <button type="submit" disabled={loading}
-              className="w-full py-2.5 rounded-lg text-sm font-semibold transition-opacity disabled:opacity-50 hover:opacity-90"
-              style={{ background: 'var(--amber)', color: '#000' }}>
+              className="w-full py-3 rounded-xl text-sm font-semibold transition-opacity disabled:opacity-50 hover:opacity-90"
+              style={{ background: 'var(--tile-yellow)', color: '#1a1a1a' }}>
               {loading ? 'Signing in…' : configured ? 'Sign in' : 'Enter Demo →'}
             </button>
           </form>
         </div>
-
-        <p className="text-center text-xs mt-6" style={{ color: 'var(--muted)' }}>Folio · Every stay, on record.</p>
       </div>
     </div>
   )

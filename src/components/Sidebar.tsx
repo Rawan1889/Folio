@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, BedDouble, CalendarDays, Users, Receipt, BarChart3, Settings, ChevronDown, Hotel, LogOut, Menu } from 'lucide-react'
+import { LayoutDashboard, BedDouble, CalendarDays, Users, Receipt, BarChart3, Settings, Hotel, LogOut, Menu, Plus } from 'lucide-react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
 const nav = [
@@ -24,7 +24,7 @@ interface SidebarProps {
   hotelId?: string | null
 }
 
-export default function Sidebar({ hotelName = 'No Hotel', userName = 'Admin', isSuperAdmin, hotelId }: SidebarProps) {
+export default function Sidebar({ hotelName = 'No Hotel', userName = 'Admin', isSuperAdmin }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -38,30 +38,40 @@ export default function Sidebar({ hotelName = 'No Hotel', userName = 'Admin', is
   }
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full">
-      <div className="px-5 py-5 border-b" style={{ borderColor: 'var(--border)' }}>
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0" style={{ background: 'var(--amber)' }}>
-            <span className="text-black font-bold text-xs">F</span>
-          </div>
-          <span className="font-semibold text-sm tracking-tight" style={{ color: 'var(--cream)' }}>Folio</span>
-          {isSuperAdmin && (
-            <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded font-medium" style={{ background: 'var(--amber-dim)', color: 'var(--amber)' }}>SUPER</span>
-          )}
+    <div className="flex flex-col h-full p-4 gap-3">
+      {/* User header */}
+      <div className="flex items-center gap-3 px-2 py-2">
+        <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold overflow-hidden" style={{ background: 'var(--tile-yellow)', color: '#1a1a1a' }}>
+          {userName.charAt(0).toUpperCase()}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold truncate" style={{ color: 'var(--cream)' }}>{userName}</p>
+          {isSuperAdmin && <p className="text-[10px]" style={{ color: 'var(--amber)' }}>Super Admin</p>}
         </div>
       </div>
 
-      <div className="px-3 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
-        <button className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-colors hover:bg-white/5">
-          <div className="w-6 h-6 rounded flex items-center justify-center flex-shrink-0" style={{ background: 'var(--surface-2)' }}>
-            <Hotel size={13} style={{ color: 'var(--amber)' }} />
-          </div>
-          <span className="text-sm font-medium flex-1 truncate" style={{ color: 'var(--cream)' }}>{hotelName}</span>
-          <ChevronDown size={13} style={{ color: 'var(--muted)' }} />
+      {/* Hotel section header */}
+      <div className="flex items-center justify-between px-2 mt-2">
+        <span className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>Hotel</span>
+        <button className="w-5 h-5 rounded-md flex items-center justify-center transition-colors hover:bg-white/10" style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--muted)' }}>
+          <Plus size={11} />
         </button>
       </div>
 
-      <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
+      {/* Hotel card */}
+      <div className="glass px-3 py-2.5 flex items-center gap-2.5 cursor-pointer hover:bg-white/[0.06]">
+        <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'var(--tile-orange)' }}>
+          <Hotel size={13} style={{ color: '#1a1a1a' }} />
+        </div>
+        <span className="text-sm font-medium flex-1 truncate" style={{ color: 'var(--cream)' }}>{hotelName}</span>
+      </div>
+
+      {/* Nav section header */}
+      <div className="px-2 mt-3">
+        <span className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>Menu</span>
+      </div>
+
+      <nav className="flex-1 space-y-1 overflow-y-auto">
         {nav.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
           return (
@@ -69,10 +79,13 @@ export default function Sidebar({ hotelName = 'No Hotel', userName = 'Admin', is
               key={href}
               href={href}
               onClick={() => setMobileOpen(false)}
-              className={cn('flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all', active ? 'font-medium' : 'hover:bg-white/5')}
-              style={active ? { background: 'var(--amber-dim)', color: 'var(--amber)' } : { color: 'var(--muted)' }}
+              className={cn('flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all', active ? 'font-medium' : 'hover:bg-white/[0.04]')}
+              style={active
+                ? { background: 'rgba(255,255,255,0.08)', color: 'var(--cream)', backdropFilter: 'blur(10px)' }
+                : { color: 'var(--muted)' }
+              }
             >
-              <Icon size={15} />
+              <Icon size={16} />
               {label}
             </Link>
           )
@@ -80,46 +93,42 @@ export default function Sidebar({ hotelName = 'No Hotel', userName = 'Admin', is
 
         {isSuperAdmin && (
           <>
-            <div className="pt-3 pb-1 px-2.5">
-              <p className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--muted)' }}>Super Admin</p>
+            <div className="pt-4 pb-1 px-3">
+              <p className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--muted-2)' }}>Super Admin</p>
             </div>
             <Link
               href="/dashboard/hotels"
               onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm hover:bg-white/5 transition-all"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm hover:bg-white/[0.04] transition-all"
               style={{ color: 'var(--muted)' }}
             >
-              <Hotel size={15} />
+              <Hotel size={16} />
               All Hotels
             </Link>
           </>
         )}
       </nav>
 
-      <div className="px-3 py-3 border-t" style={{ borderColor: 'var(--border)' }}>
-        <div className="flex items-center gap-2.5 px-2.5 py-2">
-          <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0" style={{ background: 'var(--surface-2)', color: 'var(--amber)' }}>
-            {userName.charAt(0).toUpperCase()}
-          </div>
-          <span className="text-sm flex-1 truncate" style={{ color: 'var(--cream)' }}>{userName}</span>
-          <button onClick={handleLogout} className="p-1 rounded transition-colors hover:bg-white/5" style={{ color: 'var(--muted)' }}>
-            <LogOut size={14} />
-          </button>
-        </div>
-      </div>
+      {/* Logout */}
+      <button onClick={handleLogout}
+        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors hover:bg-white/[0.04]"
+        style={{ color: 'var(--muted)' }}>
+        <LogOut size={16} />
+        Log out
+      </button>
     </div>
   )
 
   return (
     <>
-      <aside className="hidden lg:flex flex-col w-56 flex-shrink-0 h-screen sticky top-0" style={{ background: 'var(--surface)', borderRight: '1px solid var(--border)' }}>
+      <aside className="hidden lg:flex flex-col w-64 flex-shrink-0 h-screen sticky top-0 glass-strong m-3" style={{ borderRadius: 24 }}>
         <SidebarContent />
       </aside>
 
-      <div className="lg:hidden flex items-center justify-between px-4 py-3 sticky top-0 z-40" style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
+      <div className="lg:hidden flex items-center justify-between px-4 py-3 sticky top-0 z-40 glass" style={{ borderRadius: 0 }}>
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'var(--amber)' }}>
-            <span className="text-black font-bold text-[10px]">F</span>
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--tile-yellow)' }}>
+            <span className="font-bold text-[11px]" style={{ color: '#1a1a1a' }}>F</span>
           </div>
           <span className="font-semibold text-sm" style={{ color: 'var(--cream)' }}>Folio</span>
         </div>
@@ -130,8 +139,8 @@ export default function Sidebar({ hotelName = 'No Hotel', userName = 'Admin', is
 
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
-          <aside className="relative w-64 h-full flex flex-col" style={{ background: 'var(--surface)' }}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+          <aside className="relative w-72 h-full flex flex-col glass-strong m-3">
             <SidebarContent />
           </aside>
         </div>

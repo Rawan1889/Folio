@@ -1,31 +1,96 @@
 @import "tailwindcss";
 
 :root {
-  --obsidian: #0a0a0f;
-  --surface: #12121a;
-  --surface-2: #1a1a24;
-  --border: #23232f;
-  --border-hover: #2f2f3d;
-  --cream: #F0EDE6;
-  --muted: #6b7280;
-  --amber: #C8A84B;
-  --amber-dim: rgba(200, 168, 75, 0.12);
+  --bg: #0d0f14;
+  --cream: #F5F2EA;
+  --muted: rgba(245, 242, 234, 0.55);
+  --muted-2: rgba(245, 242, 234, 0.35);
+  --amber: #D4B15A;
+
+  /* Widget tile colors */
+  --tile-yellow: #F4D35E;
+  --tile-orange: #F28C4B;
+  --tile-purple: #C7A2E8;
+  --tile-green: #B8E366;
+  --tile-blue: #8FCFE8;
+  --tile-pink: #F0A5C0;
+
+  --glass-bg: rgba(255, 255, 255, 0.04);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-hover: rgba(255, 255, 255, 0.07);
 }
 
 html, body {
-  background: var(--obsidian);
+  background: var(--bg);
   color: var(--cream);
   font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* Blurred aurora background */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 45% at 15% 20%, rgba(244, 211, 94, 0.22), transparent 60%),
+    radial-gradient(ellipse 55% 50% at 85% 15%, rgba(199, 162, 232, 0.20), transparent 60%),
+    radial-gradient(ellipse 70% 55% at 90% 85%, rgba(242, 140, 75, 0.18), transparent 60%),
+    radial-gradient(ellipse 55% 45% at 10% 90%, rgba(143, 207, 232, 0.18), transparent 60%);
+  filter: blur(80px) saturate(1.1);
+  z-index: -1;
+  pointer-events: none;
 }
 
 .glass {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+}
+
+.glass-strong {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(30px) saturate(1.5);
+  -webkit-backdrop-filter: blur(30px) saturate(1.5);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 24px;
+}
+
+.tile {
+  border-radius: 24px;
+  padding: 20px;
+  color: #1a1a1a;
+  position: relative;
+  overflow: hidden;
+}
+
+.tile-icon-btn {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.serif {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+}
+
+.serif-italic {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
 }
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: var(--obsidian); }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+
+/* Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap');
