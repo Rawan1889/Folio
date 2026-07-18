@@ -76,6 +76,10 @@ export default function BookingDetailPage() {
   const [paySaving, setPaySaving] = useState(false)
   const [payError, setPayError] = useState('')
 
+  // Checkout modal state
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false)
+  const [checkoutSaving, setCheckoutSaving] = useState(false)
+
   // Edit modal state
   const [showEditModal, setShowEditModal] = useState(false)
   const [editCheckIn, setEditCheckIn] = useState('')
@@ -113,18 +117,42 @@ export default function BookingDetailPage() {
 
   async function advanceStatus() {
     if (!booking) return
+    // Check-out uses the settlement modal — never auto-advances
+    if (booking.status === 'checked_in') {
+      setShowCheckoutModal(true)
+      return
+    }
     const next = statusFlow[booking.status]
     if (!next) return
     setUpdating(true)
     await supabase.from('bookings').update({ status: next }).eq('id', id)
-    // If checking in, mark room as occupied; if checking out, mark as cleaning
-    if (booking.rooms?.id) {
-      const roomStatus = next === 'checked_in' ? 'occupied' : 'cleaning'
-      await supabase.from('rooms').update({ status: roomStatus }).eq('id', booking.rooms.id)
+    if (next === 'checked_in' && booking.rooms?.id) {
+      await supabase.from('rooms').update({ status: 'occupied' }).eq('id', booking.rooms.id)
     }
     await loadBooking()
     setUpdating(false)
-    toast(next === 'checked_in' ? 'Guest checked in' : 'Guest checked out')
+    toast('Guest checked in')
+  }
+
+  async function confirmCheckout() {
+    if (!booking) return
+    setCheckoutSaving(true)
+    // Mark booking checked out
+    await supabase.from('bookings').update({ status: 'checked_out' }).eq('id', id)
+    // Room → cleaning; auto-queue a clean task
+    if (booking.rooms?.id) {
+      await supabase.from('rooms').update({ status: 'cleaning' }).eq('id', booking.rooms.id)
+      await supabase.from('housekeeping_tasks').insert({
+        hotel_id: booking.hotel_id,
+        room_id: booking.rooms.id,
+        type: 'clean',
+        notes: `Post check-out clean — ${booking.guests?.full_name ?? 'guest'}`,
+      })
+    }
+    await loadBooking()
+    setShowCheckoutModal(false)
+    setCheckoutSaving(false)
+    toast(`Checked out · Room ${booking.rooms?.number} queued for cleaning`)
   }
 
   function openEditModal() {
@@ -388,6 +416,79 @@ export default function BookingDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Checkout modal */}
+      {showCheckoutModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowCheckoutModal(false)} />
+          <div className="relative w-full max-w-md glass-strong p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold" style={{ color: 'var(--cream)' }}>Check Out</h2>
+              <button onClick={() => setShowCheckoutModal(false)} style={{ color: 'var(--muted)' }}><X size={18} /></button>
+            </div>
+
+            <div className="flex items-center gap-3 px-3 py-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+                style={{ background: 'var(--tile-yellow)', color: '#1a1a1a' }}>
+                {booking.guests?.full_name?.charAt(0) ?? '?'}
+              </div>
+              <div>
+                <p className="font-semibold text-sm" style={{ color: 'var(--cream)' }}>{booking.guests?.full_name}</p>
+                <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                  Room {booking.rooms?.number} · {nights} night{nights !== 1 ? 's' : ''}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <div className="px-3 py-2 rounded-xl text-center" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                <p className="text-[10px] uppercase mb-0.5" style={{ color: 'var(--muted)' }}>Total</p>
+                <p className="text-sm font-semibold" style={{ color: 'var(--cream)' }}>${booking.total_amount.toLocaleString()}</p>
+              </div>
+              <div className="px-3 py-2 rounded-xl text-center" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                <p className="text-[10px] uppercase mb-0.5" style={{ color: 'var(--muted)' }}>Paid</p>
+                <p className="text-sm font-semibold" style={{ color: 'var(--cream)' }}>${(booking.paid_amount ?? 0).toLocaleString()}</p>
+              </div>
+              <div className="px-3 py-2 rounded-xl text-center" style={{ background: balance > 0 ? 'rgba(251,146,60,0.15)' : 'rgba(34,197,94,0.15)' }}>
+                <p className="text-[10px] uppercase mb-0.5" style={{ color: 'var(--muted)' }}>Balance</p>
+                <p className="text-sm font-semibold" style={{ color: balance > 0 ? '#fdba74' : '#86efac' }}>${balance.toLocaleString()}</p>
+              </div>
+            </div>
+
+            {balance > 0 && (
+              <div className="px-3 py-3 rounded-xl border" style={{ background: 'rgba(251,146,60,0.08)', borderColor: 'rgba(251,146,60,0.2)' }}>
+                <p className="text-xs font-medium mb-2" style={{ color: '#fdba74' }}>
+                  Outstanding balance of ${balance.toLocaleString()}. Settle before checkout?
+                </p>
+                <button
+                  onClick={() => { setShowCheckoutModal(false); setPayAmount(String(balance)); setShowPayModal(true) }}
+                  className="w-full py-2 rounded-lg text-xs font-semibold hover:opacity-90"
+                  style={{ background: 'var(--tile-yellow)', color: '#1a1a1a' }}>
+                  Record Payment
+                </button>
+              </div>
+            )}
+
+            <div className="px-3 py-2 rounded-xl text-xs" style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--muted)' }}>
+              Room {booking.rooms?.number} will be marked as <b style={{ color: 'var(--cream)' }}>Cleaning</b> and added to the housekeeping queue.
+            </div>
+
+            <div className="flex gap-2">
+              <Link href={`/dashboard/bookings/${id}/invoice`}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm glass hover:bg-white/[0.06]"
+                style={{ color: 'var(--cream)' }}>
+                <Printer size={13} /> Print Folio
+              </Link>
+              <button onClick={confirmCheckout} disabled={checkoutSaving}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold disabled:opacity-50 hover:opacity-90"
+                style={{ background: 'var(--tile-green)', color: '#1a1a1a' }}>
+                {checkoutSaving ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle size={13} />}
+                Confirm Check-out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Edit modal */}
       {showEditModal && (
