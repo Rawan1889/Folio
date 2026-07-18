@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Loader2, Save, Hotel, Globe, User } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/Toast'
 
 type Hotel = {
   id: string
@@ -49,6 +50,7 @@ export default function SettingsPage() {
   const [profileSaving, setProfileSaving] = useState(false)
   const [profileSaved, setProfileSaved] = useState(false)
 
+  const { toast } = useToast()
   const supabase = createClient()
 
   useEffect(() => {
@@ -102,8 +104,8 @@ export default function SettingsPage() {
       check_in_time: checkInTime,
       check_out_time: checkOutTime,
     }).eq('id', hotel.id)
-    if (err) setError(err.message)
-    else { setSaved(true); setTimeout(() => setSaved(false), 2000) }
+    if (err) { setError(err.message); toast(err.message, 'error') }
+    else { setSaved(true); setTimeout(() => setSaved(false), 2000); toast('Hotel settings saved') }
     setSaving(false)
   }
 
@@ -114,6 +116,7 @@ export default function SettingsPage() {
     await supabase.from('profiles').update({ full_name: fullName }).eq('id', profile.id)
     setProfileSaving(false); setProfileSaved(true)
     setTimeout(() => setProfileSaved(false), 2000)
+    toast('Profile saved')
   }
 
   const inputStyle = {

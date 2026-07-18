@@ -1,9 +1,12 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, Search, Star, Mail, Phone, Globe, X, Loader2, Users } from 'lucide-react'
+import { Plus, Search, Star, Mail, Phone, Globe, X, Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { SkeletonCard } from '@/components/Skeleton'
+import { EmptyState } from '@/components/EmptyState'
+import { useToast } from '@/components/Toast'
 
 type Guest = {
   id: string
@@ -36,6 +39,7 @@ export default function GuestsPage() {
   const [isVip, setIsVip] = useState(false)
   const [notes, setNotes] = useState('')
 
+  const { toast } = useToast()
   const supabase = createClient()
 
   const loadGuests = useCallback(async (hId: string) => {
@@ -86,6 +90,7 @@ export default function GuestsPage() {
     await loadGuests(hotelId)
     setShowModal(false); setSaving(false)
     setFullName(''); setEmail(''); setPhone(''); setNationality(''); setIdNumber(''); setIsVip(false); setNotes('')
+    toast('Guest added successfully')
   }
 
   const filtered = guests.filter(g =>
@@ -148,14 +153,22 @@ export default function GuestsPage() {
 
       {/* Guest cards */}
       {loading ? (
-        <div className="flex items-center justify-center gap-3 py-16" style={{ color: 'var(--muted)' }}>
-          <Loader2 size={18} className="animate-spin" /> Loading guests…
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 gap-3">
-          <Users size={32} style={{ color: 'var(--muted)' }} />
-          <p className="text-sm" style={{ color: 'var(--muted)' }}>No guests yet. Add your first guest.</p>
-        </div>
+        <EmptyState
+          icon={Users}
+          title="No guests yet"
+          description="Add your first guest to start building your CRM."
+          action={
+            <button onClick={() => setShowModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90"
+              style={{ background: 'var(--tile-yellow)', color: '#1a1a1a' }}>
+              <Plus size={14} /> Add Guest
+            </button>
+          }
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {filtered.map((g, i) => (

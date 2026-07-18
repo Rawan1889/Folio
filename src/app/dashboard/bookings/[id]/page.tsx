@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Loader2, User, BedDouble, Calendar, DollarSign, CreditCard, Plus, X, Printer, CheckCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/Toast'
 
 type Booking = {
   id: string
@@ -75,6 +76,7 @@ export default function BookingDetailPage() {
   const [paySaving, setPaySaving] = useState(false)
   const [payError, setPayError] = useState('')
 
+  const { toast } = useToast()
   const supabase = createClient()
 
   const loadBooking = useCallback(async () => {
@@ -110,6 +112,7 @@ export default function BookingDetailPage() {
     }
     await loadBooking()
     setUpdating(false)
+    toast(next === 'checked_in' ? 'Guest checked in' : 'Guest checked out')
   }
 
   async function cancelBooking() {
@@ -119,6 +122,7 @@ export default function BookingDetailPage() {
     if (booking.rooms?.id) await supabase.from('rooms').update({ status: 'available' }).eq('id', booking.rooms.id)
     await loadBooking()
     setUpdating(false)
+    toast('Booking cancelled', 'info')
   }
 
   async function recordPayment(e: React.FormEvent) {
@@ -140,6 +144,7 @@ export default function BookingDetailPage() {
     await loadBooking()
     setShowPayModal(false); setPaySaving(false)
     setPayAmount(''); setPayNotes(''); setPayMethod('cash')
+    toast('Payment recorded')
   }
 
   const inputStyle = {

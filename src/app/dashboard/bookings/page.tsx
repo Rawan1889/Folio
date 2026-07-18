@@ -4,6 +4,9 @@ import { useState, useEffect, useCallback } from 'react'
 import { Plus, Search, X, Loader2, CalendarDays, CheckCircle, LayoutGrid } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { SkeletonRow } from '@/components/Skeleton'
+import { EmptyState } from '@/components/EmptyState'
+import { useToast } from '@/components/Toast'
 
 type Booking = {
   id: string
@@ -28,6 +31,7 @@ const statusColors: Record<string, string> = {
 }
 
 export default function BookingsPage() {
+  const { toast } = useToast()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [hotelId, setHotelId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -92,6 +96,7 @@ export default function BookingsPage() {
     if (roomId) await supabase.from('rooms').update({ status: 'occupied' }).eq('id', roomId)
     if (hotelId) await loadBookings(hotelId)
     setQuickUpdating(null)
+    toast('Guest checked in successfully')
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -113,6 +118,7 @@ export default function BookingsPage() {
     await loadBookings(hotelId)
     setShowModal(false); setSaving(false)
     setGuestId(''); setRoomId(''); setCheckIn(''); setCheckOut(''); setTotalAmount(''); setSource('direct')
+    toast('Booking created successfully')
   }
 
   const filtered = bookings.filter(b =>
@@ -182,14 +188,22 @@ export default function BookingsPage() {
       {/* Table */}
       <div className="glass overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center gap-3 py-16" style={{ color: 'var(--muted)' }}>
-            <Loader2 size={18} className="animate-spin" /> Loading bookings…
+          <div className="divide-y" style={{ '--tw-divide-opacity': '1' } as React.CSSProperties}>
+            {Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <CalendarDays size={32} style={{ color: 'var(--muted)' }} />
-            <p className="text-sm" style={{ color: 'var(--muted)' }}>No bookings yet. Create your first booking.</p>
-          </div>
+          <EmptyState
+            icon={CalendarDays}
+            title="No bookings yet"
+            description="Create your first booking to get started."
+            action={
+              <button onClick={() => setShowModal(true)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90"
+                style={{ background: 'var(--tile-yellow)', color: '#1a1a1a' }}>
+                <Plus size={14} /> New Booking
+              </button>
+            }
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

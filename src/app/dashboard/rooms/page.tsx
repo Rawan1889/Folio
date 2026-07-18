@@ -1,8 +1,11 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { BedDouble, Plus, Search, ImageIcon, X, Film, Loader2, AlertCircle } from 'lucide-react'
+import { BedDouble, Plus, Search, ImageIcon, X, Film, Loader2, AlertCircle, MoreVertical } from 'lucide-react'
 import Link from 'next/link'
+import { SkeletonRoomCard } from '@/components/Skeleton'
+import { EmptyState } from '@/components/EmptyState'
+import { useToast } from '@/components/Toast'
 import { getStatusColor } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 
@@ -37,6 +40,7 @@ export default function RoomsPage() {
   const [price, setPrice] = useState('')
   const [notes, setNotes] = useState('')
 
+  const { toast } = useToast()
   const supabase = createClient()
 
   const loadRooms = useCallback(async (hId: string) => {
@@ -121,6 +125,7 @@ export default function RoomsPage() {
 
       await loadRooms(hotelId)
       closeModal()
+      toast('Room added successfully')
     } catch (err: unknown) {
       console.error('Save room error:', err)
       setSaveError(err instanceof Error ? err.message : JSON.stringify(err))
@@ -133,7 +138,17 @@ export default function RoomsPage() {
     return matchSearch && matchStatus
   })
 
-  if (loading) return <div className="flex items-center justify-center h-64"><Loader2 size={20} className="animate-spin" style={{ color: 'var(--amber)' }} /></div>
+  if (loading) return (
+    <div className="space-y-5 max-w-6xl">
+      <div className="flex items-center justify-between">
+        <div className="space-y-2"><div className="skeleton h-6 w-20 rounded-lg" /><div className="skeleton h-4 w-32 rounded-lg" /></div>
+        <div className="skeleton h-9 w-28 rounded-xl" />
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        {Array.from({ length: 8 }).map((_, i) => <SkeletonRoomCard key={i} />)}
+      </div>
+    </div>
+  )
 
   if (noHotel) return (
     <div className="flex flex-col items-center justify-center h-64 text-center gap-3">
@@ -178,10 +193,18 @@ export default function RoomsPage() {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-48 text-center gap-2">
-          <BedDouble size={28} style={{ color: 'var(--border-hover)' }} />
-          <p className="text-sm" style={{ color: 'var(--muted)' }}>No rooms yet — add your first room</p>
-        </div>
+        <EmptyState
+          icon={BedDouble}
+          title="No rooms yet"
+          description="Add your first room to start managing availability."
+          action={
+            <button onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90"
+              style={{ background: 'var(--tile-yellow)', color: '#1a1a1a' }}>
+              <Plus size={14} /> Add Room
+            </button>
+          }
+        />
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {filtered.map(room => {

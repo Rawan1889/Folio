@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import Sidebar from '@/components/Sidebar'
+import { ToastProvider } from '@/components/Toast'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -22,9 +23,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar hotelName={hotelName} userName={profile?.full_name ?? user.email ?? 'Admin'} isSuperAdmin={isSuperAdmin} hotelId={hotelId} />
-      <main className="flex-1 overflow-y-auto lg:p-6 p-4">{children}</main>
-    </div>
+    <ToastProvider>
+      <div className="flex flex-col lg:flex-row min-h-screen">
+        <Sidebar hotelName={hotelName} userName={profile?.full_name ?? user.email ?? 'Admin'} isSuperAdmin={isSuperAdmin} hotelId={hotelId} />
+        <main className="flex-1 overflow-y-auto lg:p-6 p-4 pt-4">{children}</main>
+      </div>
+    </ToastProvider>
   )
 }

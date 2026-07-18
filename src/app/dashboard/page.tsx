@@ -1,11 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { BedDouble, CalendarDays, DollarSign, TrendingUp, Upload, Sparkles, Award, Clock, LogIn, LogOut, Loader2 } from 'lucide-react'
+import { BedDouble, CalendarDays, DollarSign, TrendingUp, Upload, Sparkles, Award, Clock, LogIn, LogOut } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { createClient } from '@/lib/supabase/client'
 import { initHotel } from '@/lib/initHotel'
 import Link from 'next/link'
+import { SkeletonTile } from '@/components/Skeleton'
 
 type ActivityItem = {
   name: string
@@ -129,8 +130,30 @@ export default function DashboardPage() {
   const today = new Date().toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric' })
 
   if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <Loader2 size={20} className="animate-spin" style={{ color: 'var(--amber)' }} />
+    <div className="flex flex-col lg:flex-row gap-4">
+      <div className="flex-1 space-y-4 max-w-4xl">
+        <div className="px-2 space-y-2">
+          <div className="skeleton h-10 w-64 rounded-xl" />
+          <div className="skeleton h-4 w-40 rounded-lg" />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <SkeletonTile className="col-span-2 h-36" />
+          <SkeletonTile className="h-28" />
+          <SkeletonTile className="h-28" />
+          <SkeletonTile className="h-28" />
+          <SkeletonTile className="h-28" />
+        </div>
+        <div className="glass p-5 h-56 skeleton" />
+      </div>
+      <div className="w-full lg:w-72 space-y-3">
+        <div className="skeleton h-7 w-24 rounded-xl px-2" />
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="glass p-3.5 flex gap-3">
+            <div className="skeleton w-9 h-9 rounded-full flex-shrink-0" />
+            <div className="flex-1 space-y-2"><div className="skeleton h-3.5 w-28" /><div className="skeleton h-3 w-40" /></div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 
