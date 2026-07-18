@@ -4,14 +4,17 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, BedDouble, CalendarDays, Users, Receipt, BarChart3, Settings, Hotel, LogOut, Menu, Plus, ChevronDown, Check } from 'lucide-react'
+import { LayoutDashboard, BedDouble, CalendarDays, Users, Receipt, BarChart3, Settings, Hotel, LogOut, Menu, Plus, ChevronDown, Check, LayoutGrid, Search, UserCheck } from 'lucide-react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
 const nav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard/checkin', label: 'Check-in', icon: UserCheck },
+  { href: '/dashboard/rooms/board', label: 'Room Board', icon: LayoutGrid },
   { href: '/dashboard/rooms', label: 'Rooms', icon: BedDouble },
   { href: '/dashboard/bookings', label: 'Bookings', icon: CalendarDays },
   { href: '/dashboard/guests', label: 'Guests', icon: Users },
+  { href: '/dashboard/search', label: 'Search', icon: Search },
   { href: '/dashboard/finance', label: 'Finance', icon: Receipt },
   { href: '/dashboard/reports', label: 'Reports', icon: BarChart3 },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },

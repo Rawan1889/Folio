@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Loader2, User, BedDouble, Calendar, DollarSign, CreditCard, Plus, X, Printer, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Loader2, User, BedDouble, Calendar, DollarSign, CreditCard, Plus, X, Printer, CheckCircle, Pencil } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/Toast'
 
@@ -76,6 +76,18 @@ export default function BookingDetailPage() {
   const [paySaving, setPaySaving] = useState(false)
   const [payError, setPayError] = useState('')
 
+  // Edit modal state
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editCheckIn, setEditCheckIn] = useState('')
+  const [editCheckOut, setEditCheckOut] = useState('')
+  const [editAdults, setEditAdults] = useState(1)
+  const [editChildren, setEditChildren] = useState(0)
+  const [editTotal, setEditTotal] = useState('')
+  const [editSource, setEditSource] = useState('direct')
+  const [editNotes, setEditNotes] = useState('')
+  const [editSaving, setEditSaving] = useState(false)
+  const [editError, setEditError] = useState('')
+
   const { toast } = useToast()
   const supabase = createClient()
 
@@ -113,6 +125,40 @@ export default function BookingDetailPage() {
     await loadBooking()
     setUpdating(false)
     toast(next === 'checked_in' ? 'Guest checked in' : 'Guest checked out')
+  }
+
+  function openEditModal() {
+    if (!booking) return
+    setEditCheckIn(booking.check_in)
+    setEditCheckOut(booking.check_out)
+    setEditAdults(booking.adults)
+    setEditChildren(booking.children)
+    setEditTotal(String(booking.total_amount))
+    setEditSource(booking.source ?? 'direct')
+    setEditNotes(booking.notes ?? '')
+    setEditError('')
+    setShowEditModal(true)
+  }
+
+  async function saveEdit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!booking) return
+    if (editCheckOut <= editCheckIn) { setEditError('Check-out must be after check-in'); return }
+    setEditSaving(true); setEditError('')
+    const { error } = await supabase.from('bookings').update({
+      check_in: editCheckIn,
+      check_out: editCheckOut,
+      adults: editAdults,
+      children: editChildren,
+      total_amount: parseFloat(editTotal),
+      source: editSource,
+      notes: editNotes || null,
+    }).eq('id', id)
+    if (error) { setEditError(error.message); setEditSaving(false); return }
+    await loadBooking()
+    setShowEditModal(false)
+    setEditSaving(false)
+    toast('Booking updated')
   }
 
   async function cancelBooking() {
@@ -206,6 +252,13 @@ export default function BookingDetailPage() {
           style={{ background: 'var(--tile-yellow)', color: '#1a1a1a' }}>
           <Plus size={13} /> Record Payment
         </button>
+        {['confirmed', 'checked_in'].includes(booking.status) && (
+          <button onClick={openEditModal}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm glass hover:bg-white/[0.06] transition-colors"
+            style={{ color: 'var(--muted)' }}>
+            <Pencil size={13} /> Edit
+          </button>
+        )}
         {['confirmed', 'checked_in'].includes(booking.status) && (
           <button onClick={cancelBooking} disabled={updating}
             className="px-3.5 py-2 rounded-xl text-sm glass hover:bg-red-500/10 transition-colors"
@@ -335,6 +388,71 @@ export default function BookingDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Edit modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowEditModal(false)} />
+          <div className="relative w-full max-w-md glass-strong p-6 space-y-4 overflow-y-auto max-h-[90vh]">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold" style={{ color: 'var(--cream)' }}>Edit Booking</h2>
+              <button onClick={() => setShowEditModal(false)} style={{ color: 'var(--muted)' }}><X size={18} /></button>
+            </div>
+            <form onSubmit={saveEdit} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs mb-1.5" style={{ color: 'var(--muted)' }}>Check-in *</label>
+                  <input type="date" value={editCheckIn} onChange={e => setEditCheckIn(e.target.value)} required
+                    className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style={inputStyle} />
+                </div>
+                <div>
+                  <label className="block text-xs mb-1.5" style={{ color: 'var(--muted)' }}>Check-out *</label>
+                  <input type="date" value={editCheckOut} onChange={e => setEditCheckOut(e.target.value)} required
+                    className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style={inputStyle} />
+                </div>
+                <div>
+                  <label className="block text-xs mb-1.5" style={{ color: 'var(--muted)' }}>Adults</label>
+                  <input type="number" min="1" value={editAdults} onChange={e => setEditAdults(Number(e.target.value))}
+                    className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style={inputStyle} />
+                </div>
+                <div>
+                  <label className="block text-xs mb-1.5" style={{ color: 'var(--muted)' }}>Children</label>
+                  <input type="number" min="0" value={editChildren} onChange={e => setEditChildren(Number(e.target.value))}
+                    className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style={inputStyle} />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs mb-1.5" style={{ color: 'var(--muted)' }}>Total Amount ($)</label>
+                <input type="number" min="0" step="0.01" value={editTotal} onChange={e => setEditTotal(e.target.value)} required
+                  className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style={inputStyle} />
+              </div>
+              <div>
+                <label className="block text-xs mb-1.5" style={{ color: 'var(--muted)' }}>Source</label>
+                <select value={editSource} onChange={e => setEditSource(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style={inputStyle}>
+                  {['direct', 'online', 'phone', 'walk_in', 'agency'].map(s => (
+                    <option key={s} value={s}>{s.replace('_', ' ')}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs mb-1.5" style={{ color: 'var(--muted)' }}>Notes</label>
+                <textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} rows={2}
+                  placeholder="Special requests, notes…"
+                  className="w-full px-3 py-2.5 rounded-xl text-sm outline-none resize-none" style={inputStyle} />
+              </div>
+              {editError && (
+                <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">{editError}</p>
+              )}
+              <button type="submit" disabled={editSaving}
+                className="w-full py-3 rounded-xl text-sm font-semibold disabled:opacity-50 hover:opacity-90 transition-opacity"
+                style={{ background: 'var(--tile-yellow)', color: '#1a1a1a' }}>
+                {editSaving ? 'Saving…' : 'Save Changes'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Payment modal */}
       {showPayModal && (
