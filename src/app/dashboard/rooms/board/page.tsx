@@ -6,6 +6,8 @@ import { initHotel } from '@/lib/initHotel'
 import Link from 'next/link'
 import { RefreshCw, Zap } from 'lucide-react'
 import { QuickBookModal } from '@/components/QuickBookModal'
+import { useT } from '@/lib/i18n/context'
+import type { TranslationKey } from '@/lib/i18n/translations'
 
 type Room = {
   id: string
@@ -16,12 +18,12 @@ type Room = {
   guest_name?: string
 }
 
-const STATUS = {
-  available:   { label: 'Available',   bg: 'var(--tile-green)',         text: '#1a1a1a' },
-  occupied:    { label: 'Occupied',    bg: '#c0392b',                   text: '#fff'    },
-  cleaning:    { label: 'Cleaning',    bg: 'var(--tile-yellow)',        text: '#1a1a1a' },
-  maintenance: { label: 'Maintenance', bg: 'var(--tile-orange)',        text: '#1a1a1a' },
-  blocked:     { label: 'Blocked',     bg: 'rgba(255,255,255,0.07)',    text: 'var(--muted)' },
+const STATUS: Record<string, { labelKey: TranslationKey; bg: string; text: string }> = {
+  available:   { labelKey: 'available',   bg: 'var(--tile-green)',         text: '#1a1a1a' },
+  occupied:    { labelKey: 'occupied',    bg: '#c0392b',                   text: '#fff'    },
+  cleaning:    { labelKey: 'cleaning',    bg: 'var(--tile-yellow)',        text: '#1a1a1a' },
+  maintenance: { labelKey: 'maintenance', bg: 'var(--tile-orange)',        text: '#1a1a1a' },
+  blocked:     { labelKey: 'blocked',     bg: 'rgba(255,255,255,0.07)',    text: 'var(--muted)' },
 }
 
 type BookRoom = { id: string; number: string; floor: number; room_types: { name: string; base_price: number } | null }
@@ -33,6 +35,7 @@ export default function RoomBoardPage() {
   const [hotelId, setHotelId] = useState<string | null>(null)
   const [bookRoom, setBookRoom] = useState<BookRoom | null>(null)
   const supabase = createClient()
+  const { t } = useT()
 
   async function load() {
     setLoading(true)
@@ -78,16 +81,16 @@ export default function RoomBoardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl serif" style={{ color: 'var(--cream)' }}>
-            Room <span className="serif-italic">Board</span>
+            {t('room_board_title')}
           </h1>
           <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
-            Live front-desk view · {rooms.length} rooms
+            {t('live_frontdesk')} · {rooms.length} {t('rooms_count')}
           </p>
         </div>
         <button onClick={load}
           className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm glass hover:bg-white/[0.06] transition-colors"
           style={{ color: 'var(--muted)' }}>
-          <RefreshCw size={13} /> Refresh
+          <RefreshCw size={13} /> {t('refresh')}
         </button>
       </div>
 
@@ -101,7 +104,7 @@ export default function RoomBoardPage() {
             color: filter === 'all' ? 'var(--cream)' : 'var(--muted)',
             border: filter === 'all' ? 'none' : '1px solid rgba(255,255,255,0.08)',
           }}>
-          All ({rooms.length})
+          {t('filter_all')} ({rooms.length})
         </button>
         {(Object.entries(STATUS) as [keyof typeof STATUS, typeof STATUS[keyof typeof STATUS]][]).map(([key, cfg]) => (
           <button key={key} onClick={() => setFilter(key)}
@@ -111,7 +114,7 @@ export default function RoomBoardPage() {
               color: filter === key ? cfg.text : 'var(--muted)',
               border: filter === key ? 'none' : '1px solid rgba(255,255,255,0.08)',
             }}>
-            {cfg.label} ({counts[key] ?? 0})
+            {t(cfg.labelKey)} ({counts[key] ?? 0})
           </button>
         ))}
       </div>
@@ -131,7 +134,7 @@ export default function RoomBoardPage() {
               <div key={floor}>
                 <p className="text-[11px] font-semibold uppercase tracking-widest mb-3"
                   style={{ color: 'var(--muted-2)' }}>
-                  Floor {floor}
+                  {t('floor')} {floor}
                 </p>
                 <div className="grid grid-cols-5 sm:grid-cols-7 lg:grid-cols-10 gap-2">
                   {floorRooms.map(room => {
@@ -181,7 +184,7 @@ export default function RoomBoardPage() {
           })}
           {filtered.length === 0 && (
             <p className="text-center py-16 text-sm" style={{ color: 'var(--muted)' }}>
-              No rooms match this filter.
+              {t('no_rooms_match')}
             </p>
           )}
         </div>
@@ -192,7 +195,7 @@ export default function RoomBoardPage() {
         {(Object.entries(STATUS) as [keyof typeof STATUS, typeof STATUS[keyof typeof STATUS]][]).map(([key, cfg]) => (
           <div key={key} className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-sm" style={{ background: cfg.bg, border: key === 'blocked' ? '1px solid rgba(255,255,255,0.15)' : 'none' }} />
-            <span className="text-xs" style={{ color: 'var(--muted)' }}>{cfg.label}</span>
+            <span className="text-xs" style={{ color: 'var(--muted)' }}>{t(cfg.labelKey)}</span>
           </div>
         ))}
       </div>

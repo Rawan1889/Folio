@@ -5,6 +5,17 @@ import { Loader2, TrendingUp, TrendingDown, DollarSign, CreditCard } from 'lucid
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid } from 'recharts'
 import { createClient } from '@/lib/supabase/client'
 import { initHotel } from '@/lib/initHotel'
+import { useT } from '@/lib/i18n/context'
+import type { TranslationKey } from '@/lib/i18n/translations'
+
+const methodLabelKey: Record<string, TranslationKey> = {
+  cash: 'method_cash',
+  card: 'method_card',
+  fib: 'method_fib',
+  fastpay: 'method_fastpay',
+  bank_transfer: 'method_bank_transfer',
+  other: 'method_other',
+}
 
 type Payment = {
   id: string
@@ -27,6 +38,7 @@ export default function FinancePage() {
   const [payments, setPayments] = useState<Payment[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
+  const { t } = useT()
 
   const loadPayments = useCallback(async (hId: string) => {
     const { data } = await supabase
@@ -76,9 +88,9 @@ export default function FinancePage() {
     <div className="space-y-5 max-w-6xl">
       <div>
         <h1 className="text-3xl serif" style={{ color: 'var(--cream)' }}>
-          Fin<span className="serif-italic">ance</span>
+          {t('finance_title')}
         </h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>Revenue, payments & trends</p>
+        <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>{t('finance_subtitle')}</p>
       </div>
 
       {/* Stat tiles */}
@@ -86,22 +98,22 @@ export default function FinancePage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="tile" style={{ background: 'var(--tile-yellow)' }}>
             <div className="tile-icon-btn mb-3"><DollarSign size={14} /></div>
-            <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'rgba(0,0,0,0.55)' }}>Total Revenue</p>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'rgba(0,0,0,0.55)' }}>{t('total_revenue')}</p>
             <p className="text-2xl font-semibold" style={{ color: '#1a1a1a' }}>${totalRevenue.toLocaleString()}</p>
           </div>
           <div className="tile" style={{ background: 'var(--tile-green)' }}>
             <div className="tile-icon-btn mb-3"><TrendingUp size={14} /></div>
-            <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'rgba(0,0,0,0.55)' }}>Paid</p>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'rgba(0,0,0,0.55)' }}>{t('paid')}</p>
             <p className="text-2xl font-semibold" style={{ color: '#1a1a1a' }}>{completed.length}</p>
           </div>
           <div className="tile" style={{ background: 'var(--tile-orange)' }}>
             <div className="tile-icon-btn mb-3"><TrendingDown size={14} /></div>
-            <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'rgba(0,0,0,0.55)' }}>Pending</p>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'rgba(0,0,0,0.55)' }}>{t('pending')}</p>
             <p className="text-2xl font-semibold" style={{ color: '#1a1a1a' }}>${pending.toLocaleString()}</p>
           </div>
           <div className="tile" style={{ background: 'var(--tile-blue)' }}>
             <div className="tile-icon-btn mb-3"><CreditCard size={14} /></div>
-            <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'rgba(0,0,0,0.55)' }}>Transactions</p>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'rgba(0,0,0,0.55)' }}>{t('transactions')}</p>
             <p className="text-2xl font-semibold" style={{ color: '#1a1a1a' }}>{payments.length}</p>
           </div>
         </div>
@@ -109,14 +121,14 @@ export default function FinancePage() {
 
       {loading ? (
         <div className="flex items-center justify-center gap-3 py-16" style={{ color: 'var(--muted)' }}>
-          <Loader2 size={18} className="animate-spin" /> Loading finance data…
+          <Loader2 size={18} className="animate-spin" /> {t('loading_finance')}
         </div>
       ) : (
         <>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* Revenue chart */}
             <div className="glass p-5 lg:col-span-2">
-              <h2 className="text-sm font-semibold mb-4" style={{ color: 'var(--cream)' }}>Revenue by Month</h2>
+              <h2 className="text-sm font-semibold mb-4" style={{ color: 'var(--cream)' }}>{t('revenue_by_month')}</h2>
               {monthlyData.length === 0 ? (
                 <p className="text-sm py-8 text-center" style={{ color: 'var(--muted)' }}>No payment data yet</p>
               ) : (
@@ -134,7 +146,7 @@ export default function FinancePage() {
 
             {/* Payment methods */}
             <div className="glass p-5">
-              <h2 className="text-sm font-semibold mb-4" style={{ color: 'var(--cream)' }}>Payment Methods</h2>
+              <h2 className="text-sm font-semibold mb-4" style={{ color: 'var(--cream)' }}>{t('payment_methods')}</h2>
               {methodData.length === 0 ? (
                 <p className="text-sm py-8 text-center" style={{ color: 'var(--muted)' }}>No data yet</p>
               ) : (
@@ -152,7 +164,7 @@ export default function FinancePage() {
                       <div key={m.name} className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 rounded-full" style={{ background: methodColors[m.name] ?? 'var(--tile-pink)' }} />
-                          <span className="capitalize" style={{ color: 'var(--muted)' }}>{m.name}</span>
+                          <span style={{ color: 'var(--muted)' }}>{t(methodLabelKey[m.name] ?? 'method_other')}</span>
                         </div>
                         <span style={{ color: 'var(--cream)' }}>${m.value.toLocaleString()}</span>
                       </div>
@@ -166,16 +178,16 @@ export default function FinancePage() {
           {/* Recent transactions */}
           <div className="glass overflow-hidden">
             <div className="px-5 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-              <h2 className="text-sm font-semibold" style={{ color: 'var(--cream)' }}>Recent Transactions</h2>
+              <h2 className="text-sm font-semibold" style={{ color: 'var(--cream)' }}>{t('recent_transactions')}</h2>
             </div>
             {payments.length === 0 ? (
-              <p className="text-sm py-8 text-center" style={{ color: 'var(--muted)' }}>No transactions yet</p>
+              <p className="text-sm py-8 text-center" style={{ color: 'var(--muted)' }}>{t('no_transactions')}</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                      {['Date', 'Method', 'Amount', 'Status'].map(h => (
+                      {[t('date'), t('method'), t('amount'), t('status')].map(h => (
                         <th key={h} className="px-5 py-3 text-left text-xs font-medium" style={{ color: 'var(--muted)' }}>{h}</th>
                       ))}
                     </tr>
@@ -186,7 +198,7 @@ export default function FinancePage() {
                         <td className="px-5 py-3 text-xs" style={{ color: 'var(--muted)' }}>{p.created_at?.slice(0, 10) ?? '—'}</td>
                         <td className="px-5 py-3">
                           <span className="capitalize text-xs px-2 py-0.5 rounded-lg" style={{ background: `${methodColors[p.method] ?? 'rgba(255,255,255,0.1)'}22`, color: methodColors[p.method] ?? 'var(--muted)' }}>
-                            {p.method}
+                            {t(methodLabelKey[p.method] ?? 'method_other')}
                           </span>
                         </td>
                         <td className="px-5 py-3 font-semibold" style={{ color: 'var(--amber)' }}>${p.amount.toLocaleString()}</td>

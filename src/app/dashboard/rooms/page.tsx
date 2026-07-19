@@ -11,9 +11,11 @@ import { getStatusColor } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { QuickBookModal } from '@/components/QuickBookModal'
 import { initHotel } from '@/lib/initHotel'
+import { useT } from '@/lib/i18n/context'
+import type { TranslationKey } from '@/lib/i18n/translations'
 
-const statusLabel: Record<string, string> = {
-  available: 'Available', occupied: 'Occupied', cleaning: 'Cleaning', maintenance: 'Maintenance', blocked: 'Blocked',
+const statusLabelKey: Record<string, TranslationKey> = {
+  available: 'available', occupied: 'occupied', cleaning: 'cleaning', maintenance: 'maintenance', blocked: 'blocked',
 }
 
 type Room = {
@@ -46,6 +48,7 @@ export default function RoomsPage() {
   const { toast } = useToast()
   const supabase = createClient()
   const router = useRouter()
+  const { t } = useT()
   const [bookRoom, setBookRoom] = useState<Room | null>(null)
   const [arrivalsByRoom, setArrivalsByRoom] = useState<Record<string, { bookingId: string; guestName: string }>>({})
 
@@ -181,19 +184,19 @@ export default function RoomsPage() {
     <div className="space-y-5 max-w-6xl">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold" style={{ color: 'var(--cream)' }}>Rooms</h1>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>{rooms.length} rooms · {rooms.filter(r => r.status === 'available').length} available</p>
+          <h1 className="text-xl font-semibold" style={{ color: 'var(--cream)' }}>{t('rooms_title')}</h1>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>{rooms.length} {t('rooms_count')} · {rooms.filter(r => r.status === 'available').length} {t('room_available')}</p>
         </div>
         <button onClick={() => setShowAddModal(true)} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium hover:opacity-90"
           style={{ background: 'var(--amber)', color: '#000' }}>
-          <Plus size={14} /> Add Room
+          <Plus size={14} /> {t('add_room')}
         </button>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--muted)' }} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search room number or type…"
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('search_rooms_placeholder')}
             className="w-full pl-9 pr-4 py-2 rounded-lg text-sm outline-none"
             style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--cream)' }} />
         </div>
@@ -205,7 +208,7 @@ export default function RoomsPage() {
                 ? { background: 'var(--amber-dim)', color: 'var(--amber)', border: '1px solid rgba(200,168,75,0.25)' }
                 : { background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--muted)' }
               }>
-              {s === 'all' ? 'All' : statusLabel[s]}
+              {s === 'all' ? t('filter_all') : t(statusLabelKey[s])}
             </button>
           ))}
         </div>
@@ -214,13 +217,13 @@ export default function RoomsPage() {
       {filtered.length === 0 ? (
         <EmptyState
           icon={BedDouble}
-          title="No rooms yet"
-          description="Add your first room to start managing availability."
+          title={t('no_rooms_yet')}
+          description={t('add_first_room')}
           action={
             <button onClick={() => setShowAddModal(true)}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90"
               style={{ background: 'var(--tile-yellow)', color: '#1a1a1a' }}>
-              <Plus size={14} /> Add Room
+              <Plus size={14} /> {t('add_room')}
             </button>
           }
         />
@@ -241,14 +244,14 @@ export default function RoomsPage() {
                   <div className="p-3">
                     <div className="flex items-start justify-between mb-2">
                       <div>
-                        <p className="font-semibold text-sm" style={{ color: 'var(--cream)' }}>Room {room.number}</p>
-                        <p className="text-xs" style={{ color: 'var(--muted)' }}>{room.room_types?.name ?? '—'} · Floor {room.floor}</p>
+                        <p className="font-semibold text-sm" style={{ color: 'var(--cream)' }}>{t('room')} {room.number}</p>
+                        <p className="text-xs" style={{ color: 'var(--muted)' }}>{room.room_types?.name ?? '—'} · {t('floor')} {room.floor}</p>
                       </div>
                       <MoreVertical size={14} className="opacity-0 group-hover:opacity-100" style={{ color: 'var(--muted)' }} />
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full border font-medium ${getStatusColor(room.status)}`}>{statusLabel[room.status]}</span>
-                      <span className="text-xs font-semibold" style={{ color: 'var(--amber)' }}>${room.room_types?.base_price ?? 0}/n</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full border font-medium ${getStatusColor(room.status)}`}>{t(statusLabelKey[room.status])}</span>
+                      <span className="text-xs font-semibold" style={{ color: 'var(--amber)' }}>${room.room_types?.base_price ?? 0}{t('per_n')}</span>
                     </div>
                   </div>
                 </Link>
@@ -262,14 +265,14 @@ export default function RoomsPage() {
                     title={`Check in ${arrivalsByRoom[room.id].guestName}`}
                     className="absolute top-2 right-2 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold opacity-100 transition-opacity shadow-lg"
                     style={{ background: 'var(--tile-green)', color: '#1a1a1a' }}>
-                    <CheckCircle size={10} /> Check In
+                    <CheckCircle size={10} /> {t('nav_checkin')}
                   </button>
                 ) : room.status === 'available' && (
                   <button
                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBookRoom(room) }}
                     className="absolute top-2 right-2 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
                     style={{ background: 'var(--tile-yellow)', color: '#1a1a1a' }}>
-                    <Zap size={10} /> Book
+                    <Zap size={10} /> {t('book')}
                   </button>
                 )}
               </div>

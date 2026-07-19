@@ -10,6 +10,16 @@ import { EmptyState } from '@/components/EmptyState'
 import { useToast } from '@/components/Toast'
 import { initHotel } from '@/lib/initHotel'
 import { hasOverlap } from '@/lib/bookingChecks'
+import { useT } from '@/lib/i18n/context'
+import type { TranslationKey } from '@/lib/i18n/translations'
+
+const statusKey: Record<string, TranslationKey> = {
+  confirmed: 'confirmed',
+  checked_in: 'checked_in_status',
+  checked_out: 'checked_out_status',
+  cancelled: 'cancelled',
+  no_show: 'no_show',
+}
 
 type Booking = {
   id: string
@@ -36,6 +46,7 @@ const statusColors: Record<string, string> = {
 export default function BookingsPage() {
   const { toast } = useToast()
   const router = useRouter()
+  const { t } = useT()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [hotelId, setHotelId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -139,22 +150,22 @@ export default function BookingsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl serif" style={{ color: 'var(--cream)' }}>
-            Book<span className="serif-italic">ings</span>
+            {t('bookings_title')}
           </h1>
           <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
-            {loading ? 'Loading…' : `${filtered.length} bookings`}
+            {loading ? t('loading') : `${filtered.length} ${t('nav_bookings')}`}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Link href="/dashboard/bookings/calendar"
             className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-medium glass hover:bg-white/[0.06]"
             style={{ color: 'var(--cream)' }}>
-            <LayoutGrid size={14} /> Calendar
+            <LayoutGrid size={14} /> {t('calendar')}
           </Link>
           <button onClick={() => setShowModal(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90"
             style={{ background: 'var(--tile-yellow)', color: '#1a1a1a' }}>
-            <Plus size={15} /> New Booking
+            <Plus size={15} /> {t('new_booking')}
           </button>
         </div>
       </div>
@@ -162,7 +173,7 @@ export default function BookingsPage() {
       {/* Search */}
       <div className="relative">
         <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--muted)' }} />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by guest, room…"
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('search_bookings_placeholder')}
           className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm outline-none"
           style={inputStyle} />
       </div>
@@ -171,10 +182,10 @@ export default function BookingsPage() {
       {!loading && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
-            { label: 'Total', value: bookings.length, color: 'var(--tile-blue)' },
-            { label: 'Confirmed', value: bookings.filter(b => b.status === 'confirmed').length, color: 'var(--tile-purple)' },
-            { label: 'Checked In', value: bookings.filter(b => b.status === 'checked_in').length, color: 'var(--tile-green)' },
-            { label: 'Cancelled', value: bookings.filter(b => b.status === 'cancelled').length, color: 'var(--tile-orange)' },
+            { label: t('total'), value: bookings.length, color: 'var(--tile-blue)' },
+            { label: t('confirmed'), value: bookings.filter(b => b.status === 'confirmed').length, color: 'var(--tile-purple)' },
+            { label: t('checked_in_status'), value: bookings.filter(b => b.status === 'checked_in').length, color: 'var(--tile-green)' },
+            { label: t('cancelled'), value: bookings.filter(b => b.status === 'cancelled').length, color: 'var(--tile-orange)' },
           ].map(s => (
             <div key={s.label} className="tile" style={{ background: s.color }}>
               <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'rgba(0,0,0,0.55)' }}>{s.label}</p>
@@ -193,13 +204,13 @@ export default function BookingsPage() {
         ) : filtered.length === 0 ? (
           <EmptyState
             icon={CalendarDays}
-            title="No bookings yet"
-            description="Create your first booking to get started."
+            title={t('no_bookings_yet')}
+            description={t('create_first_booking')}
             action={
               <button onClick={() => setShowModal(true)}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90"
                 style={{ background: 'var(--tile-yellow)', color: '#1a1a1a' }}>
-                <Plus size={14} /> New Booking
+                <Plus size={14} /> {t('new_booking')}
               </button>
             }
           />
@@ -208,7 +219,7 @@ export default function BookingsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                  {['Guest', 'Room', 'Check-in', 'Check-out', 'Total', 'Source', 'Status', ''].map(h => (
+                  {[t('guest'), t('room'), t('check_in'), t('check_out'), t('total'), t('source'), t('status'), ''].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-medium" style={{ color: 'var(--muted)' }}>{h}</th>
                   ))}
                 </tr>
@@ -222,14 +233,14 @@ export default function BookingsPage() {
                     <td className="px-4 py-3 font-medium" style={{ color: 'var(--cream)' }}>
                       {b.guests?.full_name ?? '—'}
                     </td>
-                    <td className="px-4 py-3" style={{ color: 'var(--muted)' }}>Rm {b.rooms?.number ?? '—'}</td>
+                    <td className="px-4 py-3" style={{ color: 'var(--muted)' }}>{t('room')} {b.rooms?.number ?? '—'}</td>
                     <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted)' }}>{b.check_in}</td>
                     <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted)' }}>{b.check_out}</td>
                     <td className="px-4 py-3 font-semibold" style={{ color: 'var(--amber)' }}>${b.total_amount.toLocaleString()}</td>
                     <td className="px-4 py-3 text-xs capitalize" style={{ color: 'var(--muted)' }}>{b.source ?? 'direct'}</td>
                     <td className="px-4 py-3">
                       <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${statusColors[b.status] ?? 'bg-white/10 text-white/50 border-white/20'}`}>
-                        {b.status.replace('_', ' ')}
+                        {t(statusKey[b.status] ?? 'confirmed')}
                       </span>
                     </td>
                     <td className="px-3 py-3">
