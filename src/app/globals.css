@@ -63,9 +63,22 @@ body::before {
 .tile {
   border-radius: 24px;
   padding: 20px;
-  color: #1a1a1a;
+  color: #000;
   position: relative;
   overflow: hidden;
+}
+.tile p {
+  color: #000 !important;
+}
+.tile p:not(:first-of-type),
+.tile .text-2xl,
+.tile .text-3xl {
+  font-weight: 700 !important;
+  color: #000 !important;
+}
+.tile .text-xs {
+  color: rgba(0, 0, 0, 0.7) !important;
+  font-weight: 700 !important;
 }
 
 .tile-icon-btn {
