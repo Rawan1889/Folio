@@ -3,9 +3,10 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Loader2, BedDouble, CalendarDays, Save, Film } from 'lucide-react'
+import { ArrowLeft, Loader2, BedDouble, CalendarDays, Save, Film, Zap } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { getStatusColor } from '@/lib/utils'
+import { QuickBookModal } from '@/components/QuickBookModal'
 
 type Room = {
   id: string
@@ -50,6 +51,7 @@ export default function RoomDetailPage() {
   const [status, setStatus] = useState('')
   const [notes, setNotes] = useState('')
   const [price, setPrice] = useState('')
+  const [showBookModal, setShowBookModal] = useState(false)
 
   const supabase = createClient()
 
@@ -111,12 +113,17 @@ export default function RoomDetailPage() {
         <button onClick={() => router.back()} className="p-2 rounded-xl hover:bg-white/[0.04]" style={{ color: 'var(--muted)' }}>
           <ArrowLeft size={18} />
         </button>
-        <div>
+        <div className="flex-1">
           <h1 className="text-3xl serif" style={{ color: 'var(--cream)' }}>
             Room <span className="serif-italic">{room.number}</span>
           </h1>
           <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{room.room_types?.name ?? 'Standard'} · Floor {room.floor}</p>
         </div>
+        <button onClick={() => setShowBookModal(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity"
+          style={{ background: 'var(--tile-yellow)', color: '#1a1a1a' }}>
+          <Zap size={14} /> Book Now
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -240,6 +247,15 @@ export default function RoomDetailPage() {
           </div>
         )}
       </div>
+
+      {showBookModal && (
+        <QuickBookModal
+          hotelId={room.hotel_id}
+          room={{ id: room.id, number: room.number, floor: room.floor, room_types: room.room_types }}
+          onClose={() => setShowBookModal(false)}
+          onBooked={loadRoom}
+        />
+      )}
     </div>
   )
 }

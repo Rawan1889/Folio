@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Loader2, Download } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, CartesianGrid } from 'recharts'
 import { createClient } from '@/lib/supabase/client'
+import { initHotel } from '@/lib/initHotel'
 
 type Booking = {
   check_in: string
@@ -29,29 +30,17 @@ export default function ReportsPage() {
       supabase.from('payments').select('amount, created_at').eq('hotel_id', hId).eq('status', 'completed'),
     ])
     setBookings((b as unknown as Booking[]) ?? [])
-    setPayments(p ?? [])
+    setPayments((p ?? []).map(x => ({ ...x, amount: Number(x.amount) })) as Payment[])
   }, [supabase])
 
   useEffect(() => {
     async function init() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      const { data: profile } = await supabase.from('profiles').select('role, tenant_id').eq('id', user.id).single()
-
-      let hotel: { id: string } | null = null
-      if (profile?.role === 'super_admin') {
-        const { data } = await supabase.from('hotels').select('id').order('created_at').limit(1).single()
-        hotel = data
-      } else if (profile?.tenant_id) {
-        const { data } = await supabase.from('hotels').select('id').eq('tenant_id', profile.tenant_id).order('created_at').limit(1).single()
-        hotel = data
-      }
-
-      if (hotel?.id) await loadData(hotel.id)
+      const hotel = await initHotel()
+      if (hotel?.hotelId) await loadData(hotel.hotelId)
       setLoading(false)
     }
     init()
-  }, [loadData, supabase])
+  }, [loadData])
 
   // Monthly revenue
   const byMonth: Record<string, number> = {}

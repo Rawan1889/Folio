@@ -1,13 +1,16 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { BedDouble, Plus, Search, ImageIcon, X, Film, Loader2, AlertCircle, MoreVertical } from 'lucide-react'
+import { BedDouble, Plus, Search, ImageIcon, X, Film, Loader2, AlertCircle, MoreVertical, Zap, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { SkeletonRoomCard } from '@/components/Skeleton'
 import { EmptyState } from '@/components/EmptyState'
 import { useToast } from '@/components/Toast'
 import { getStatusColor } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
+import { QuickBookModal } from '@/components/QuickBookModal'
+import { initHotel } from '@/lib/initHotel'
 
 const statusLabel: Record<string, string> = {
   available: 'Available', occupied: 'Occupied', cleaning: 'Cleaning', maintenance: 'Maintenance', blocked: 'Blocked',
@@ -42,31 +45,47 @@ export default function RoomsPage() {
 
   const { toast } = useToast()
   const supabase = createClient()
+  const router = useRouter()
+  const [bookRoom, setBookRoom] = useState<Room | null>(null)
+  const [arrivalsByRoom, setArrivalsByRoom] = useState<Record<string, { bookingId: string; guestName: string }>>({})
 
   const loadRooms = useCallback(async (hId: string) => {
-    const { data } = await supabase.from('rooms')
-      .select('id, number, floor, status, notes, room_types(name, base_price), room_media(url, type, is_cover)')
-      .eq('hotel_id', hId).order('number')
-    setRooms((data as unknown as Room[]) ?? [])
+    const today = new Date().toISOString().slice(0, 10)
+    const [{ data: roomsData }, { data: arrivals }] = await Promise.all([
+      supabase.from('rooms')
+        .select('id, number, floor, status, notes, room_types(id, name, base_price), room_media(url, type, is_cover)')
+        .eq('hotel_id', hId).order('number'),
+      supabase.from('bookings')
+        .select('id, room_id, guests(full_name)')
+        .eq('hotel_id', hId)
+        .eq('status', 'confirmed')
+        .lte('check_in', today)
+        .gte('check_out', today),
+    ])
+    setRooms((roomsData as unknown as Room[]) ?? [])
+    const map: Record<string, { bookingId: string; guestName: string }> = {}
+    for (const a of (arrivals ?? [])) {
+      const g = a.guests as { full_name?: string } | null
+      if (a.room_id) map[a.room_id] = { bookingId: a.id, guestName: g?.full_name ?? 'Guest' }
+    }
+    setArrivalsByRoom(map)
   }, [supabase])
+
+  async function doCheckIn(roomId: string, bookingId: string, guestName: string, roomNumber: string) {
+    if (!hotelId) return
+    await supabase.from('bookings').update({ status: 'checked_in' }).eq('id', bookingId)
+    await supabase.from('rooms').update({ status: 'occupied' }).eq('id', roomId)
+    await loadRooms(hotelId)
+    toast(`Checked in ${guestName} · Room ${roomNumber}`)
+    router.push(`/dashboard/bookings/${bookingId}`)
+  }
 
   useEffect(() => {
     async function init() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      const { data: profile } = await supabase.from('profiles').select('role, tenant_id').eq('id', user.id).single()
-
-      let hotel: { id: string } | null = null
-      if (profile?.role === 'super_admin') {
-        const { data } = await supabase.from('hotels').select('id').order('created_at').limit(1).single()
-        hotel = data
-      } else if (profile?.tenant_id) {
-        const { data } = await supabase.from('hotels').select('id').eq('tenant_id', profile.tenant_id).order('created_at').limit(1).single()
-        hotel = data
-      }
-      if (!hotel) { setNoHotel(true); setLoading(false); return }
-      setHotelId(hotel.id)
-      await loadRooms(hotel.id)
+      const hotel = await initHotel()
+      if (!hotel?.hotelId) { setNoHotel(true); setLoading(false); return }
+      setHotelId(hotel.hotelId)
+      await loadRooms(hotel.hotelId)
       setLoading(false)
     }
     init()
@@ -210,28 +229,50 @@ export default function RoomsPage() {
           {filtered.map(room => {
             const cover = room.room_media?.find(m => m.is_cover) ?? room.room_media?.[0]
             return (
-              <Link key={room.id} href={`/dashboard/rooms/${room.id}`} className="glass overflow-hidden cursor-pointer group hover:border-white/10 block">
-                <div className="h-28 flex items-center justify-center relative overflow-hidden" style={{ background: 'var(--surface-2)' }}>
-                  {cover ? (
-                    cover.type === 'image'
-                      ? <img src={cover.url} alt="" className="w-full h-full object-cover" />
-                      : <Film size={24} style={{ color: 'var(--amber)' }} />
-                  ) : <BedDouble size={28} style={{ color: 'var(--border-hover)' }} />}
-                </div>
-                <div className="p-3">
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <p className="font-semibold text-sm" style={{ color: 'var(--cream)' }}>Room {room.number}</p>
-                      <p className="text-xs" style={{ color: 'var(--muted)' }}>{room.room_types?.name ?? '—'} · Floor {room.floor}</p>
+              <div key={room.id} className="glass overflow-hidden group hover:border-white/10 relative">
+                <Link href={`/dashboard/rooms/${room.id}`} className="block cursor-pointer">
+                  <div className="h-28 flex items-center justify-center relative overflow-hidden" style={{ background: 'var(--surface-2)' }}>
+                    {cover ? (
+                      cover.type === 'image'
+                        ? <img src={cover.url} alt="" className="w-full h-full object-cover" />
+                        : <Film size={24} style={{ color: 'var(--amber)' }} />
+                    ) : <BedDouble size={28} style={{ color: 'var(--border-hover)' }} />}
+                  </div>
+                  <div className="p-3">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <p className="font-semibold text-sm" style={{ color: 'var(--cream)' }}>Room {room.number}</p>
+                        <p className="text-xs" style={{ color: 'var(--muted)' }}>{room.room_types?.name ?? '—'} · Floor {room.floor}</p>
+                      </div>
+                      <MoreVertical size={14} className="opacity-0 group-hover:opacity-100" style={{ color: 'var(--muted)' }} />
                     </div>
-                    <button className="p-0.5 opacity-0 group-hover:opacity-100" style={{ color: 'var(--muted)' }}><MoreVertical size={14} /></button>
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full border font-medium ${getStatusColor(room.status)}`}>{statusLabel[room.status]}</span>
+                      <span className="text-xs font-semibold" style={{ color: 'var(--amber)' }}>${room.room_types?.base_price ?? 0}/n</span>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full border font-medium ${getStatusColor(room.status)}`}>{statusLabel[room.status]}</span>
-                    <span className="text-xs font-semibold" style={{ color: 'var(--amber)' }}>${room.room_types?.base_price ?? 0}/n</span>
-                  </div>
-                </div>
-              </Link>
+                </Link>
+                {arrivalsByRoom[room.id] ? (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault(); e.stopPropagation()
+                      const a = arrivalsByRoom[room.id]
+                      doCheckIn(room.id, a.bookingId, a.guestName, room.number)
+                    }}
+                    title={`Check in ${arrivalsByRoom[room.id].guestName}`}
+                    className="absolute top-2 right-2 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold opacity-100 transition-opacity shadow-lg"
+                    style={{ background: 'var(--tile-green)', color: '#1a1a1a' }}>
+                    <CheckCircle size={10} /> Check In
+                  </button>
+                ) : room.status === 'available' && (
+                  <button
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBookRoom(room) }}
+                    className="absolute top-2 right-2 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                    style={{ background: 'var(--tile-yellow)', color: '#1a1a1a' }}>
+                    <Zap size={10} /> Book
+                  </button>
+                )}
+              </div>
             )
           })}
         </div>
@@ -336,6 +377,15 @@ export default function RoomsPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {bookRoom && hotelId && (
+        <QuickBookModal
+          hotelId={hotelId}
+          room={bookRoom}
+          onClose={() => setBookRoom(null)}
+          onBooked={() => hotelId && loadRooms(hotelId)}
+        />
       )}
     </div>
   )

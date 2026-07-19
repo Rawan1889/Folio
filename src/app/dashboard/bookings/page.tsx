@@ -4,9 +4,12 @@ import { useState, useEffect, useCallback } from 'react'
 import { Plus, Search, X, Loader2, CalendarDays, CheckCircle, LayoutGrid } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { SkeletonRow } from '@/components/Skeleton'
 import { EmptyState } from '@/components/EmptyState'
 import { useToast } from '@/components/Toast'
+import { initHotel } from '@/lib/initHotel'
+import { hasOverlap } from '@/lib/bookingChecks'
 
 type Booking = {
   id: string
@@ -32,6 +35,7 @@ const statusColors: Record<string, string> = {
 
 export default function BookingsPage() {
   const { toast } = useToast()
+  const router = useRouter()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [hotelId, setHotelId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -64,25 +68,13 @@ export default function BookingsPage() {
 
   useEffect(() => {
     async function init() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      const { data: profile } = await supabase.from('profiles').select('role, tenant_id').eq('id', user.id).single()
-
-      let hotel: { id: string } | null = null
-      if (profile?.role === 'super_admin') {
-        const { data } = await supabase.from('hotels').select('id').order('created_at').limit(1).single()
-        hotel = data
-      } else if (profile?.tenant_id) {
-        const { data } = await supabase.from('hotels').select('id').eq('tenant_id', profile.tenant_id).order('created_at').limit(1).single()
-        hotel = data
-      }
-
-      if (hotel?.id) {
-        setHotelId(hotel.id)
-        await loadBookings(hotel.id)
-        const { data: r } = await supabase.from('rooms').select('id, number').eq('hotel_id', hotel.id).order('number')
+      const hotel = await initHotel()
+      if (hotel?.hotelId) {
+        setHotelId(hotel.hotelId)
+        await loadBookings(hotel.hotelId)
+        const { data: r } = await supabase.from('rooms').select('id, number').eq('hotel_id', hotel.hotelId).order('number')
         setRooms(r ?? [])
-        const { data: g } = await supabase.from('guests').select('id, full_name').eq('hotel_id', hotel.id).order('full_name')
+        const { data: g } = await supabase.from('guests').select('id, full_name').eq('hotel_id', hotel.hotelId).order('full_name')
         setGuests(g ?? [])
       }
       setLoading(false)
@@ -103,6 +95,13 @@ export default function BookingsPage() {
     e.preventDefault()
     if (!hotelId || !roomId || !guestId) { setSaveError('Please select a room and guest'); return }
     setSaving(true); setSaveError('')
+
+    const { overlap, guestName: conflictName } = await hasOverlap(roomId, checkIn, checkOut)
+    if (overlap) {
+      setSaveError(`Room is already booked for those dates${conflictName ? ` (${conflictName})` : ''}`)
+      setSaving(false)
+      return
+    }
 
     const { error } = await supabase.from('bookings').insert({
       hotel_id: hotelId,
@@ -216,11 +215,12 @@ export default function BookingsPage() {
               </thead>
               <tbody>
                 {filtered.map(b => (
-                  <tr key={b.id} className="transition-colors hover:bg-white/[0.02]" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                    <td className="px-4 py-3">
-                      <Link href={`/dashboard/bookings/${b.id}`} className="font-medium hover:underline" style={{ color: 'var(--cream)' }}>
-                        {b.guests?.full_name ?? '—'}
-                      </Link>
+                  <tr key={b.id}
+                    onClick={() => router.push(`/dashboard/bookings/${b.id}`)}
+                    className="cursor-pointer transition-colors hover:bg-white/[0.03]"
+                    style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <td className="px-4 py-3 font-medium" style={{ color: 'var(--cream)' }}>
+                      {b.guests?.full_name ?? '—'}
                     </td>
                     <td className="px-4 py-3" style={{ color: 'var(--muted)' }}>Rm {b.rooms?.number ?? '—'}</td>
                     <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted)' }}>{b.check_in}</td>
@@ -235,7 +235,7 @@ export default function BookingsPage() {
                     <td className="px-3 py-3">
                       {b.status === 'confirmed' && b.check_in <= new Date().toISOString().split('T')[0] && (
                         <button
-                          onClick={() => quickCheckIn(b.id, (b.rooms as { id: string; number: string } | null)?.id ?? null)}
+                          onClick={(e) => { e.stopPropagation(); quickCheckIn(b.id, (b.rooms as { id: string; number: string } | null)?.id ?? null) }}
                           disabled={quickUpdating === b.id}
                           className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium disabled:opacity-50"
                           style={{ background: 'var(--tile-green)', color: '#1a1a1a' }}>

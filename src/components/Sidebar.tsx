@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, BedDouble, CalendarDays, Users, Receipt, BarChart3, Settings, Hotel, LogOut, Menu, Plus, ChevronDown, Check, LayoutGrid, Search, UserCheck, Sparkles, Moon, Users2, Tag } from 'lucide-react'
+import { LayoutDashboard, BedDouble, CalendarDays, Users, Receipt, BarChart3, Settings, Hotel, LogOut, Menu, Plus, ChevronDown, Check, LayoutGrid, Search, UserCheck, Sparkles, Moon, Users2, Tag, Globe } from 'lucide-react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
 const nav = [
@@ -19,6 +19,7 @@ const nav = [
   { href: '/dashboard/audit', label: 'Night Audit', icon: Moon },
   { href: '/dashboard/finance', label: 'Finance', icon: Receipt },
   { href: '/dashboard/rates', label: 'Rate Plans', icon: Tag },
+  { href: '/dashboard/channels', label: 'Channels', icon: Globe },
   { href: '/dashboard/staff', label: 'Staff', icon: Users2 },
   { href: '/dashboard/reports', label: 'Reports', icon: BarChart3 },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
@@ -141,24 +142,30 @@ export default function Sidebar({ hotelName = 'No Hotel', userName = 'Admin', is
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto">
-        {nav.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
-          return (
-            <Link
-              key={href}
-              href={href}
-              onClick={() => setMobileOpen(false)}
-              className={cn('flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all', active ? 'font-medium' : 'hover:bg-white/[0.04]')}
-              style={active
-                ? { background: 'rgba(255,255,255,0.08)', color: 'var(--cream)', backdropFilter: 'blur(10px)' }
-                : { color: 'var(--muted)' }
-              }
-            >
-              <Icon size={16} />
-              {label}
-            </Link>
-          )
-        })}
+        {(() => {
+          // Pick the single longest-matching href so nested routes highlight only their most specific entry
+          const bestMatch = nav
+            .filter(n => pathname === n.href || (n.href !== '/dashboard' && pathname.startsWith(n.href + '/')))
+            .sort((a, b) => b.href.length - a.href.length)[0]?.href
+          return nav.map(({ href, label, icon: Icon }) => {
+            const active = href === bestMatch
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setMobileOpen(false)}
+                className={cn('flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all', active ? 'font-medium' : 'hover:bg-white/[0.04]')}
+                style={active
+                  ? { background: 'rgba(255,255,255,0.08)', color: 'var(--cream)', backdropFilter: 'blur(10px)' }
+                  : { color: 'var(--muted)' }
+                }
+              >
+                <Icon size={16} />
+                {label}
+              </Link>
+            )
+          })
+        })()}
 
         {isSuperAdmin && (
           <>

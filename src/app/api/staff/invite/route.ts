@@ -4,8 +4,9 @@ import { createClient as createServer } from '@/lib/supabase/server'
 
 export async function POST(req: Request) {
   try {
-    const { email, fullName, role, hotelId } = await req.json()
+    const { email, fullName, role, hotelId, password } = await req.json()
     if (!email || !role) return NextResponse.json({ error: 'Missing email or role' }, { status: 400 })
+    if (password && password.length < 6) return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 })
 
     // Auth check — only super_admin or hotel_admin may invite
     const supabase = await createServer()
@@ -31,15 +32,33 @@ export async function POST(req: Request) {
     if (!serviceKey) return NextResponse.json({ error: 'Service role key missing' }, { status: 500 })
 
     const admin = createClient(url, serviceKey)
-    const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
-      data: { full_name: fullName ?? email, role },
-    })
-    if (inviteErr) return NextResponse.json({ error: inviteErr.message }, { status: 400 })
 
-    // Upsert profile with role + tenant + hotel scope
-    if (invited.user) {
+    let createdUserId: string | null = null
+
+    if (password) {
+      // Direct create with password — no email needed
+      const { data: created, error: createErr } = await admin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { full_name: fullName ?? email, role },
+      })
+      if (createErr) return NextResponse.json({ error: createErr.message }, { status: 400 })
+      createdUserId = created.user?.id ?? null
+    } else {
+      // Fallback: email invite
+      const origin = new URL(req.url).origin
+      const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
+        data: { full_name: fullName ?? email, role },
+        redirectTo: `${origin}/auth/callback?next=/set-password`,
+      })
+      if (inviteErr) return NextResponse.json({ error: inviteErr.message }, { status: 400 })
+      createdUserId = invited.user?.id ?? null
+    }
+
+    if (createdUserId) {
       await admin.from('profiles').upsert({
-        id: invited.user.id,
+        id: createdUserId,
         full_name: fullName ?? email,
         role,
         tenant_id: hotel.tenant_id,

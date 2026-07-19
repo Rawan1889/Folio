@@ -7,6 +7,7 @@ import { ArrowLeft, Loader2, User, BedDouble, Calendar, DollarSign, CreditCard, 
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/Toast'
 import { BookingRooms } from '@/components/BookingRooms'
+import { FolioCharges } from '@/components/FolioCharges'
 
 type Booking = {
   id: string
@@ -80,6 +81,8 @@ export default function BookingDetailPage() {
   // Checkout modal state
   const [showCheckoutModal, setShowCheckoutModal] = useState(false)
   const [checkoutSaving, setCheckoutSaving] = useState(false)
+  const [checkoutPayMethod, setCheckoutPayMethod] = useState<'cash' | 'card' | 'fib' | 'fastpay' | 'bank_transfer' | null>(null)
+  const [settling, setSettling] = useState(false)
 
   // Edit modal state
   const [showEditModal, setShowEditModal] = useState(false)
@@ -135,12 +138,28 @@ export default function BookingDetailPage() {
     toast('Guest checked in')
   }
 
-  async function confirmCheckout() {
+  async function settleBalance(method: 'cash' | 'card' | 'fib' | 'fastpay' | 'bank_transfer') {
+    if (!booking || balance <= 0) return
+    setSettling(true)
+    const { error } = await supabase.from('payments').insert({
+      booking_id: id,
+      hotel_id: booking.hotel_id,
+      amount: balance,
+      method,
+      status: 'completed',
+      notes: 'Settled at checkout',
+    })
+    if (error) { toast(error.message, 'error'); setSettling(false); return }
+    await supabase.from('bookings').update({ paid_amount: booking.total_amount }).eq('id', id)
+    await loadBooking()
+    setCheckoutPayMethod(method)
+    setSettling(false)
+    toast(`Paid $${balance} · ${method.replace('_', ' ')}`)
+  }
+
+  async function performCheckout() {
     if (!booking) return
-    setCheckoutSaving(true)
-    // Mark booking checked out
     await supabase.from('bookings').update({ status: 'checked_out' }).eq('id', id)
-    // Room → cleaning; auto-queue a clean task
     if (booking.rooms?.id) {
       await supabase.from('rooms').update({ status: 'cleaning' }).eq('id', booking.rooms.id)
       await supabase.from('housekeeping_tasks').insert({
@@ -150,10 +169,26 @@ export default function BookingDetailPage() {
         notes: `Post check-out clean — ${booking.guests?.full_name ?? 'guest'}`,
       })
     }
+  }
+
+  async function confirmCheckout() {
+    if (!booking) return
+    setCheckoutSaving(true)
+    await performCheckout()
     await loadBooking()
     setShowCheckoutModal(false)
     setCheckoutSaving(false)
     toast(`Checked out · Room ${booking.rooms?.number} queued for cleaning`)
+  }
+
+  async function checkoutAndPrint() {
+    if (!booking) return
+    setCheckoutSaving(true)
+    await performCheckout()
+    setShowCheckoutModal(false)
+    setCheckoutSaving(false)
+    toast(`Checked out · Room ${booking.rooms?.number} queued for cleaning`)
+    router.push(`/dashboard/bookings/${id}/invoice`)
   }
 
   function openEditModal() {
@@ -366,6 +401,8 @@ export default function BookingDetailPage() {
               </div>
             )}
           </div>
+
+          <FolioCharges bookingId={booking.id} hotelId={booking.hotel_id} onChanged={loadBooking} />
         </div>
 
         {/* Side cards */}
@@ -459,16 +496,39 @@ export default function BookingDetailPage() {
             </div>
 
             {balance > 0 && (
-              <div className="px-3 py-3 rounded-xl border" style={{ background: 'rgba(251,146,60,0.08)', borderColor: 'rgba(251,146,60,0.2)' }}>
-                <p className="text-xs font-medium mb-2" style={{ color: '#fdba74' }}>
-                  Outstanding balance of ${balance.toLocaleString()}. Settle before checkout?
+              <div className="px-3 py-3 rounded-xl border space-y-2" style={{ background: 'rgba(251,146,60,0.08)', borderColor: 'rgba(251,146,60,0.2)' }}>
+                <p className="text-xs font-medium" style={{ color: '#fdba74' }}>
+                  Settle ${balance.toLocaleString()} balance — pick payment method:
                 </p>
-                <button
-                  onClick={() => { setShowCheckoutModal(false); setPayAmount(String(balance)); setShowPayModal(true) }}
-                  className="w-full py-2 rounded-lg text-xs font-semibold hover:opacity-90"
-                  style={{ background: 'var(--tile-yellow)', color: '#1a1a1a' }}>
-                  Record Payment
-                </button>
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { key: 'cash', label: 'Cash', bg: 'var(--tile-green)' },
+                    { key: 'card', label: 'Card', bg: 'var(--tile-blue)' },
+                    { key: 'fib', label: 'FIB', bg: 'var(--tile-purple)' },
+                    { key: 'fastpay', label: 'FastPay', bg: 'var(--tile-orange)' },
+                    { key: 'bank_transfer', label: 'Bank', bg: 'var(--tile-yellow)' },
+                  ] as const).map(m => (
+                    <button key={m.key}
+                      onClick={() => settleBalance(m.key)}
+                      disabled={settling}
+                      className="py-2.5 rounded-lg text-xs font-bold disabled:opacity-50 hover:opacity-90 transition-opacity"
+                      style={{ background: m.bg, color: '#1a1a1a' }}>
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+                {settling && (
+                  <p className="text-[10px] flex items-center gap-1.5" style={{ color: 'var(--muted)' }}>
+                    <Loader2 size={10} className="animate-spin" /> Recording payment…
+                  </p>
+                )}
+              </div>
+            )}
+
+            {balance === 0 && checkoutPayMethod && (
+              <div className="px-3 py-2 rounded-xl border text-xs flex items-center gap-2"
+                style={{ background: 'rgba(34,197,94,0.08)', borderColor: 'rgba(34,197,94,0.2)', color: '#86efac' }}>
+                <CheckCircle size={12} /> Paid in full via <b className="capitalize">{checkoutPayMethod.replace('_', ' ')}</b>
               </div>
             )}
 
@@ -477,11 +537,12 @@ export default function BookingDetailPage() {
             </div>
 
             <div className="flex gap-2">
-              <Link href={`/dashboard/bookings/${id}/invoice`}
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm glass hover:bg-white/[0.06]"
+              <button onClick={checkoutAndPrint} disabled={checkoutSaving}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm glass hover:bg-white/[0.06] disabled:opacity-50"
                 style={{ color: 'var(--cream)' }}>
-                <Printer size={13} /> Print Folio
-              </Link>
+                {checkoutSaving ? <Loader2 size={13} className="animate-spin" /> : <Printer size={13} />}
+                Check out & Print
+              </button>
               <button onClick={confirmCheckout} disabled={checkoutSaving}
                 className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold disabled:opacity-50 hover:opacity-90"
                 style={{ background: 'var(--tile-green)', color: '#1a1a1a' }}>
@@ -489,6 +550,9 @@ export default function BookingDetailPage() {
                 Confirm Check-out
               </button>
             </div>
+            <p className="text-[10px] text-center" style={{ color: 'var(--muted-2)' }}>
+              Both options mark the guest as checked out and queue the room for cleaning.
+            </p>
           </div>
         </div>
       )}

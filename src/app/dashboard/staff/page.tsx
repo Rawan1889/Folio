@@ -42,6 +42,9 @@ export default function StaffPage() {
   const [email, setEmail] = useState('')
   const [fullName, setFullName] = useState('')
   const [role, setRole] = useState<Staff['role']>('staff')
+  const [password, setPassword] = useState('')
+  const [inviteHotelId, setInviteHotelId] = useState('')
+  const [availableHotels, setAvailableHotels] = useState<{ id: string; name: string }[]>([])
   const [inviting, setInviting] = useState(false)
   const [inviteError, setInviteError] = useState('')
 
@@ -70,6 +73,16 @@ export default function StaffPage() {
       const { data: profile } = await supabase.from('profiles')
         .select('role, tenant_id').eq('id', hotel.userId).single()
       setMyRole(profile?.role ?? '')
+
+      // Populate hotel picker for the invite modal
+      let hotelsQuery = supabase.from('hotels').select('id, name').order('name')
+      if (profile?.role !== 'super_admin' && profile?.tenant_id) {
+        hotelsQuery = hotelsQuery.eq('tenant_id', profile.tenant_id)
+      }
+      const { data: hotelsData } = await hotelsQuery
+      setAvailableHotels(hotelsData ?? [])
+      setInviteHotelId(hotel.hotelId)
+
       await load(hotel.hotelId, profile?.tenant_id ?? null, profile?.role === 'super_admin')
       setLoading(false)
     }
@@ -83,13 +96,13 @@ export default function StaffPage() {
     const res = await fetch('/api/staff/invite', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, fullName, role, hotelId }),
+      body: JSON.stringify({ email, fullName, role, hotelId: inviteHotelId || hotelId, password: password || undefined }),
     })
     const data = await res.json()
     if (!res.ok) { setInviteError(data.error ?? 'Failed'); setInviting(false); return }
-    toast(`Invite sent to ${email}`)
+    toast(password ? `${email} added` : `Invite sent to ${email}`)
     setShowInvite(false); setInviting(false)
-    setEmail(''); setFullName(''); setRole('staff')
+    setEmail(''); setFullName(''); setRole('staff'); setPassword('')
 
     // Refresh
     const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', myId).single()
@@ -141,7 +154,7 @@ export default function StaffPage() {
           <button onClick={() => setShowInvite(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity"
             style={{ background: 'var(--tile-yellow)', color: '#1a1a1a' }}>
-            <UserPlus size={14} /> Invite Staff
+            <UserPlus size={14} /> Add Staff
           </button>
         )}
       </div>
@@ -159,7 +172,7 @@ export default function StaffPage() {
             <button onClick={() => setShowInvite(true)}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90"
               style={{ background: 'var(--tile-yellow)', color: '#1a1a1a' }}>
-              <UserPlus size={14} /> Invite Staff
+              <UserPlus size={14} /> Add Staff
             </button>
           ) : undefined}
         />
@@ -219,11 +232,11 @@ export default function StaffPage() {
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowInvite(false)} />
           <div className="relative w-full max-w-md glass-strong p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold" style={{ color: 'var(--cream)' }}>Invite Staff</h2>
+              <h2 className="text-lg font-semibold" style={{ color: 'var(--cream)' }}>Add Staff</h2>
               <button onClick={() => setShowInvite(false)} style={{ color: 'var(--muted)' }}><X size={18} /></button>
             </div>
             <p className="text-xs" style={{ color: 'var(--muted)' }}>
-              A magic-link invite will be sent to the email. They&apos;ll set their password on first login.
+              Set a password to add them immediately. Leave blank to send a magic-link invite instead.
             </p>
             <form onSubmit={invite} className="space-y-3">
               <div>
@@ -238,14 +251,36 @@ export default function StaffPage() {
                   placeholder="Sara Kurdi"
                   className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style={inputStyle} />
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs mb-1.5" style={{ color: 'var(--muted)' }}>Role</label>
+                  <select value={role} onChange={e => setRole(e.target.value as Staff['role'])}
+                    className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style={inputStyle}>
+                    {(myRole === 'super_admin' ? ['super_admin', 'hotel_admin', 'manager', 'staff'] : ['hotel_admin', 'manager', 'staff']).map(r => (
+                      <option key={r} value={r}>{roleLabels[r]}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs mb-1.5" style={{ color: 'var(--muted)' }}>Hotel *</label>
+                  <select value={inviteHotelId} onChange={e => setInviteHotelId(e.target.value)} required
+                    className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style={inputStyle}>
+                    {availableHotels.map(h => (
+                      <option key={h.id} value={h.id}>{h.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
               <div>
-                <label className="block text-xs mb-1.5" style={{ color: 'var(--muted)' }}>Role</label>
-                <select value={role} onChange={e => setRole(e.target.value as Staff['role'])}
-                  className="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style={inputStyle}>
-                  {(myRole === 'super_admin' ? ['super_admin', 'hotel_admin', 'manager', 'staff'] : ['hotel_admin', 'manager', 'staff']).map(r => (
-                    <option key={r} value={r}>{roleLabels[r]}</option>
-                  ))}
-                </select>
+                <label className="block text-xs mb-1.5" style={{ color: 'var(--muted)' }}>
+                  Password <span style={{ color: 'var(--muted-2)' }}>(optional · min 6 chars)</span>
+                </label>
+                <input type="text" value={password} onChange={e => setPassword(e.target.value)}
+                  placeholder="Leave blank to send email invite"
+                  className="w-full px-3 py-2.5 rounded-xl text-sm outline-none font-mono" style={inputStyle} />
+                <p className="text-[10px] mt-1" style={{ color: 'var(--muted-2)' }}>
+                  Share this with the user securely. They can change it in Settings after login.
+                </p>
               </div>
               {inviteError && (
                 <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">{inviteError}</p>
@@ -254,7 +289,7 @@ export default function StaffPage() {
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold disabled:opacity-50 hover:opacity-90"
                 style={{ background: 'var(--tile-yellow)', color: '#1a1a1a' }}>
                 {inviting ? <Loader2 size={13} className="animate-spin" /> : <UserPlus size={13} />}
-                {inviting ? 'Sending…' : 'Send Invite'}
+                {inviting ? 'Saving…' : (password ? 'Create Account' : 'Send Invite')}
               </button>
             </form>
           </div>

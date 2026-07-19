@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { initHotel } from '@/lib/initHotel'
 import Link from 'next/link'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, Zap } from 'lucide-react'
+import { QuickBookModal } from '@/components/QuickBookModal'
 
 type Room = {
   id: string
@@ -23,21 +24,26 @@ const STATUS = {
   blocked:     { label: 'Blocked',     bg: 'rgba(255,255,255,0.07)',    text: 'var(--muted)' },
 }
 
+type BookRoom = { id: string; number: string; floor: number; room_types: { name: string; base_price: number } | null }
+
 export default function RoomBoardPage() {
   const [rooms, setRooms] = useState<Room[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
+  const [hotelId, setHotelId] = useState<string | null>(null)
+  const [bookRoom, setBookRoom] = useState<BookRoom | null>(null)
   const supabase = createClient()
 
   async function load() {
     setLoading(true)
     const hotel = await initHotel()
     if (!hotel) { setLoading(false); return }
+    setHotelId(hotel.hotelId)
 
     const [{ data: roomsData }, { data: bookingsData }] = await Promise.all([
       supabase
         .from('rooms')
-        .select('id, number, floor, status, room_types(name)')
+        .select('id, number, floor, status, room_types(id, name, base_price)')
         .eq('hotel_id', hotel.hotelId)
         .order('floor').order('number'),
       supabase
@@ -130,12 +136,8 @@ export default function RoomBoardPage() {
                 <div className="grid grid-cols-5 sm:grid-cols-7 lg:grid-cols-10 gap-2">
                   {floorRooms.map(room => {
                     const cfg = STATUS[room.status]
-                    return (
-                      <Link
-                        key={room.id}
-                        href={`/dashboard/rooms/${room.id}`}
-                        className="relative flex flex-col items-center justify-center p-2 rounded-xl aspect-square text-center hover:scale-105 transition-transform cursor-pointer"
-                        style={{ background: cfg.bg, color: cfg.text }}>
+                    const inner = (
+                      <>
                         <span className="text-sm font-bold leading-none">{room.number}</span>
                         {room.room_types?.name && (
                           <span className="text-[8px] mt-1 opacity-60 leading-none truncate w-full px-0.5">
@@ -147,6 +149,29 @@ export default function RoomBoardPage() {
                             {room.guest_name.split(' ')[0]}
                           </span>
                         )}
+                        {room.status === 'available' && (
+                          <Zap size={9} className="absolute top-1 right-1 opacity-60" />
+                        )}
+                      </>
+                    )
+                    const className = "group relative flex flex-col items-center justify-center p-2 rounded-xl aspect-square text-center hover:scale-105 transition-transform cursor-pointer"
+                    const style = { background: cfg.bg, color: cfg.text }
+
+                    // Available/cleaning/maintenance → open book modal directly
+                    // Occupied → go to room detail (has active guest)
+                    // Blocked → go to room detail
+                    if (['available', 'cleaning', 'maintenance'].includes(room.status)) {
+                      return (
+                        <button key={room.id}
+                          onClick={() => setBookRoom({ id: room.id, number: room.number, floor: room.floor, room_types: room.room_types as { name: string; base_price: number } | null })}
+                          className={className} style={style}>
+                          {inner}
+                        </button>
+                      )
+                    }
+                    return (
+                      <Link key={room.id} href={`/dashboard/rooms/${room.id}`} className={className} style={style}>
+                        {inner}
                       </Link>
                     )
                   })}
@@ -171,6 +196,15 @@ export default function RoomBoardPage() {
           </div>
         ))}
       </div>
+
+      {bookRoom && hotelId && (
+        <QuickBookModal
+          hotelId={hotelId}
+          room={bookRoom}
+          onClose={() => setBookRoom(null)}
+          onBooked={load}
+        />
+      )}
     </div>
   )
 }

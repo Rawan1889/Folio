@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams } from 'next/navigation'
-import { Loader2, Printer, ArrowLeft } from 'lucide-react'
+import { Loader2, Printer, ArrowLeft, Download } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 
@@ -28,11 +28,22 @@ type Payment = {
   created_at: string
 }
 
+type Charge = {
+  id: string
+  category: string
+  description: string
+  amount: number
+  quantity: number
+}
+
 export default function InvoicePage() {
   const { id } = useParams<{ id: string }>()
   const [booking, setBooking] = useState<InvoiceData | null>(null)
   const [payments, setPayments] = useState<Payment[]>([])
+  const [charges, setCharges] = useState<Charge[]>([])
   const [loading, setLoading] = useState(true)
+  const [downloading, setDownloading] = useState(false)
+  const invoiceRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -49,7 +60,15 @@ export default function InvoicePage() {
         .select('id, amount, method, created_at')
         .eq('booking_id', id)
         .order('created_at')
-      setPayments(pays ?? [])
+      setPayments((pays ?? []).map(p => ({ ...p, amount: Number(p.amount) })) as Payment[])
+
+      const { data: chrgs } = await supabase
+        .from('folio_charges')
+        .select('id, category, description, amount, quantity')
+        .eq('booking_id', id)
+        .order('created_at')
+      setCharges((chrgs ?? []).map(c => ({ ...c, amount: Number(c.amount) })) as Charge[])
+
       setLoading(false)
     }
     load()
@@ -63,10 +82,37 @@ export default function InvoicePage() {
   if (!booking) return <div className="text-center py-24" style={{ color: 'var(--muted)' }}>Booking not found.</div>
 
   const nights = Math.max(1, Math.round((new Date(booking.check_out).getTime() - new Date(booking.check_in).getTime()) / 86400000))
-  const balance = booking.total_amount - (booking.paid_amount ?? 0)
+  const extrasTotal = charges.reduce((s, c) => s + c.amount * c.quantity, 0)
+  const grandTotal = Number(booking.total_amount) + extrasTotal
+  const balance = grandTotal - Number(booking.paid_amount ?? 0)
   const invoiceNum = `INV-${booking.id.slice(0, 8).toUpperCase()}`
   const issueDate = new Date().toLocaleDateString('en', { year: 'numeric', month: 'long', day: 'numeric' })
   const hotel = booking.hotels
+
+  async function downloadPdf() {
+    if (!invoiceRef.current) return
+    setDownloading(true)
+    try {
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ])
+      const canvas = await html2canvas(invoiceRef.current, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+      })
+      const imgData = canvas.toDataURL('image/png')
+      const pdf = new jsPDF({ unit: 'mm', format: 'a4' })
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      const imgHeight = (canvas.height * pageWidth) / canvas.width
+      pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, imgHeight)
+      pdf.save(`${invoiceNum}.pdf`)
+    } catch (e) {
+      console.error(e)
+    }
+    setDownloading(false)
+  }
 
   return (
     <>
@@ -77,15 +123,21 @@ export default function InvoicePage() {
           <ArrowLeft size={18} />
         </Link>
         <span className="text-sm font-semibold" style={{ color: 'var(--cream)' }}>Invoice {invoiceNum}</span>
+        <button onClick={downloadPdf} disabled={downloading}
+          className="ml-auto flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-50"
+          style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--cream)' }}>
+          {downloading ? <Loader2 size={13} className="animate-spin" /> : <Download size={14} />}
+          {downloading ? 'Generating…' : 'Download PDF'}
+        </button>
         <button onClick={() => window.print()}
-          className="ml-auto flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90"
           style={{ background: 'var(--tile-yellow)', color: '#1a1a1a' }}>
-          <Printer size={14} /> Print / Save PDF
+          <Printer size={14} /> Print
         </button>
       </div>
 
       {/* Invoice card */}
-      <div className="glass p-8 max-w-2xl mx-auto print:bg-white print:text-black print:border-none print:shadow-none print:max-w-full">
+      <div ref={invoiceRef} className="glass p-8 max-w-2xl mx-auto print:bg-white print:text-black print:border-none print:shadow-none print:max-w-full">
         <style>{`@media print { body { background: white !important; } .glass { background: white !important; border: none !important; backdrop-filter: none !important; } }`}</style>
 
         {/* Header */}
@@ -149,9 +201,22 @@ export default function InvoicePage() {
                   ${booking.rooms?.room_types?.base_price ?? '—'}/night
                 </td>
                 <td className="px-4 py-3 text-right font-semibold" style={{ color: 'var(--cream)' }}>
-                  ${booking.total_amount.toLocaleString()}
+                  ${Number(booking.total_amount).toLocaleString()}
                 </td>
               </tr>
+              {charges.map(c => (
+                <tr key={c.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                  <td className="px-4 py-3">
+                    <p className="font-medium" style={{ color: 'var(--cream)' }}>{c.description}</p>
+                    <p className="text-xs capitalize" style={{ color: 'var(--muted)' }}>{c.category}</p>
+                  </td>
+                  <td className="px-4 py-3 text-center" style={{ color: 'var(--muted)' }}>{c.quantity}</td>
+                  <td className="px-4 py-3 text-right" style={{ color: 'var(--muted)' }}>${c.amount.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-right font-semibold" style={{ color: 'var(--cream)' }}>
+                    ${(c.amount * c.quantity).toFixed(2)}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -160,8 +225,18 @@ export default function InvoicePage() {
         <div className="flex justify-end mb-6">
           <div className="w-64 space-y-2">
             <div className="flex justify-between text-sm">
-              <span style={{ color: 'var(--muted)' }}>Subtotal</span>
-              <span style={{ color: 'var(--cream)' }}>${booking.total_amount.toLocaleString()}</span>
+              <span style={{ color: 'var(--muted)' }}>Room subtotal</span>
+              <span style={{ color: 'var(--cream)' }}>${Number(booking.total_amount).toLocaleString()}</span>
+            </div>
+            {extrasTotal > 0 && (
+              <div className="flex justify-between text-sm">
+                <span style={{ color: 'var(--muted)' }}>Extras</span>
+                <span style={{ color: 'var(--cream)' }}>${extrasTotal.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-sm font-semibold pt-1" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <span style={{ color: 'var(--cream)' }}>Grand Total</span>
+              <span style={{ color: 'var(--cream)' }}>${grandTotal.toFixed(2)}</span>
             </div>
             {payments.map(p => (
               <div key={p.id} className="flex justify-between text-sm">

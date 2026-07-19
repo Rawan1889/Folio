@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Loader2, Save, Hotel, Globe, User } from 'lucide-react'
+import { Loader2, Save, Hotel, Globe, User, KeyRound } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/Toast'
 
@@ -49,6 +49,12 @@ export default function SettingsPage() {
   const [fullName, setFullName] = useState('')
   const [profileSaving, setProfileSaving] = useState(false)
   const [profileSaved, setProfileSaved] = useState(false)
+
+  // Password change state
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordSaving, setPasswordSaving] = useState(false)
+  const [passwordError, setPasswordError] = useState('')
 
   const { toast } = useToast()
   const supabase = createClient()
@@ -107,6 +113,19 @@ export default function SettingsPage() {
     if (err) { setError(err.message); toast(err.message, 'error') }
     else { setSaved(true); setTimeout(() => setSaved(false), 2000); toast('Hotel settings saved') }
     setSaving(false)
+  }
+
+  async function changePassword(e: React.FormEvent) {
+    e.preventDefault()
+    setPasswordError('')
+    if (newPassword.length < 6) { setPasswordError('Password must be at least 6 characters'); return }
+    if (newPassword !== confirmPassword) { setPasswordError('Passwords do not match'); return }
+    setPasswordSaving(true)
+    const { error: err } = await supabase.auth.updateUser({ password: newPassword })
+    setPasswordSaving(false)
+    if (err) { setPasswordError(err.message); toast(err.message, 'error'); return }
+    setNewPassword(''); setConfirmPassword('')
+    toast('Password updated')
   }
 
   async function saveProfile(e: React.FormEvent) {
@@ -250,6 +269,39 @@ export default function SettingsPage() {
           style={{ background: 'var(--tile-yellow)', color: '#1a1a1a' }}>
           {profileSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
           {profileSaved ? 'Saved!' : 'Save Profile'}
+        </button>
+      </form>
+
+      {/* Change password */}
+      <form onSubmit={changePassword} className="glass p-5 space-y-4">
+        <div className="flex items-center gap-2.5 mb-1">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--tile-orange)' }}>
+            <KeyRound size={13} style={{ color: '#1a1a1a' }} />
+          </div>
+          <h2 className="text-sm font-semibold" style={{ color: 'var(--cream)' }}>Change Password</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>New Password</label>
+            <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)}
+              autoComplete="new-password" minLength={6} placeholder="Min 6 characters"
+              className="w-full px-3.5 py-2.5 rounded-xl text-sm outline-none" style={inputStyle} />
+          </div>
+          <div>
+            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>Confirm Password</label>
+            <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
+              autoComplete="new-password"
+              className="w-full px-3.5 py-2.5 rounded-xl text-sm outline-none" style={inputStyle} />
+          </div>
+        </div>
+        {passwordError && (
+          <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">{passwordError}</p>
+        )}
+        <button type="submit" disabled={passwordSaving || !newPassword}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50 transition-opacity hover:opacity-90"
+          style={{ background: 'var(--tile-yellow)', color: '#1a1a1a' }}>
+          {passwordSaving ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />}
+          {passwordSaving ? 'Updating…' : 'Update Password'}
         </button>
       </form>
     </div>

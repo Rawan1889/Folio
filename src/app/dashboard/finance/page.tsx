@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Loader2, TrendingUp, TrendingDown, DollarSign, CreditCard } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid } from 'recharts'
 import { createClient } from '@/lib/supabase/client'
+import { initHotel } from '@/lib/initHotel'
 
 type Payment = {
   id: string
@@ -33,29 +34,22 @@ export default function FinancePage() {
       .select('id, amount, method, status, created_at, bookings(check_in, total_amount)')
       .eq('hotel_id', hId)
       .order('created_at', { ascending: false })
-    setPayments((data as unknown as Payment[]) ?? [])
+    const normalized = (data ?? []).map(p => ({
+      ...p,
+      amount: Number(p.amount),
+      bookings: p.bookings ? { ...p.bookings, total_amount: Number((p.bookings as { total_amount: number }).total_amount) } : null,
+    })) as unknown as Payment[]
+    setPayments(normalized)
   }, [supabase])
 
   useEffect(() => {
     async function init() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      const { data: profile } = await supabase.from('profiles').select('role, tenant_id').eq('id', user.id).single()
-
-      let hotel: { id: string } | null = null
-      if (profile?.role === 'super_admin') {
-        const { data } = await supabase.from('hotels').select('id').order('created_at').limit(1).single()
-        hotel = data
-      } else if (profile?.tenant_id) {
-        const { data } = await supabase.from('hotels').select('id').eq('tenant_id', profile.tenant_id).order('created_at').limit(1).single()
-        hotel = data
-      }
-
-      if (hotel?.id) await loadPayments(hotel.id)
+      const hotel = await initHotel()
+      if (hotel?.hotelId) await loadPayments(hotel.hotelId)
       setLoading(false)
     }
     init()
-  }, [loadPayments, supabase])
+  }, [loadPayments])
 
   const completed = payments.filter(p => p.status === 'completed')
   const totalRevenue = completed.reduce((s, p) => s + p.amount, 0)

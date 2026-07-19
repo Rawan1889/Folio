@@ -50,10 +50,14 @@ export default function HotelsPage() {
     e.preventDefault()
     setSaving(true); setSaveError('')
 
-    // Create tenant first
+    // Create tenant first (auto-generate slug from name)
+    const brandName = tenantName || name
+    const slug = brandName.toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '') + '-' + Date.now().toString(36)
     const { data: tenant, error: tErr } = await supabase
       .from('tenants')
-      .insert({ name: tenantName || name })
+      .insert({ name: brandName, slug })
       .select('id')
       .single()
     if (tErr) { setSaveError(tErr.message); setSaving(false); return }
