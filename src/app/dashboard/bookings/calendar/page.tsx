@@ -168,7 +168,7 @@ export default function CalendarPage() {
                   <tr key={room.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                     {/* Room label */}
                     <td className="sticky left-0 z-10 px-3 py-2 font-medium"
-                      style={{ background: 'rgba(13,15,20,0.95)', color: 'var(--cream)', borderRight: '1px solid rgba(255,255,255,0.06)', background: ri % 2 === 0 ? 'rgba(13,15,20,0.95)' : 'rgba(20,22,28,0.95)' }}>
+                      style={{ color: 'var(--cream)', borderRight: '1px solid rgba(255,255,255,0.06)', background: ri % 2 === 0 ? 'rgba(13,15,20,0.95)' : 'rgba(20,22,28,0.95)' }}>
                       <Link href={`/dashboard/rooms/${room.id}`} className="hover:underline" style={{ color: 'var(--cream)' }}>
                         {room.number}
                       </Link>

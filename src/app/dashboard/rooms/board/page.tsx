@@ -55,11 +55,11 @@ export default function RoomBoardPage() {
 
     const guestByRoom: Record<string, string> = {}
     for (const b of (bookingsData ?? [])) {
-      const g = b.guests as { full_name: string } | null
+      const g = b.guests as unknown as { full_name: string } | null
       if (b.room_id && g?.full_name) guestByRoom[b.room_id] = g.full_name
     }
 
-    setRooms((roomsData ?? []).map(r => ({ ...r, guest_name: guestByRoom[r.id] })) as Room[])
+    setRooms((roomsData ?? []).map(r => ({ ...r, guest_name: guestByRoom[r.id] })) as unknown as Room[])
     setLoading(false)
   }
 

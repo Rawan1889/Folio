@@ -37,7 +37,7 @@ export default function FinancePage() {
     const normalized = (data ?? []).map(p => ({
       ...p,
       amount: Number(p.amount),
-      bookings: p.bookings ? { ...p.bookings, total_amount: Number((p.bookings as { total_amount: number }).total_amount) } : null,
+      bookings: p.bookings ? { ...p.bookings, total_amount: Number((p.bookings as unknown as { total_amount: number }).total_amount) } : null,
     })) as unknown as Payment[]
     setPayments(normalized)
   }, [supabase])

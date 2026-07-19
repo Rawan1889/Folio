@@ -92,7 +92,7 @@ export default function DashboardPage() {
       // Activity feed from recent bookings
       const colorList = tileColors
       setActivity(
-        (recentBkgs ?? []).slice(0, 5).map((b: { guests?: { full_name?: string } | null; status: string; check_in: string; rooms?: { number?: string } | null }, i: number) => {
+        ((recentBkgs ?? []) as unknown as { guests?: { full_name?: string } | null; status: string; check_in: string; rooms?: { number?: string } | null }[]).slice(0, 5).map((b, i) => {
           const guestName = (b.guests as { full_name?: string } | null)?.full_name ?? 'Guest'
           const roomNum = (b.rooms as { number?: string } | null)?.number ?? '—'
           const msgs: Record<string, string> = {
@@ -107,14 +107,14 @@ export default function DashboardPage() {
       )
 
       setArrivals(
-        (arrivalBkgs ?? []).map((b: { id: string; guests?: { full_name?: string } | null; rooms?: { number?: string } | null }) => ({
+        ((arrivalBkgs ?? []) as unknown as { id: string; guests?: { full_name?: string } | null; rooms?: { number?: string } | null }[]).map(b => ({
           id: b.id,
           guest: (b.guests as { full_name?: string } | null)?.full_name ?? 'Guest',
           room: (b.rooms as { number?: string } | null)?.number ?? '—',
         }))
       )
       setDepartures(
-        (departureBkgs ?? []).map((b: { id: string; guests?: { full_name?: string } | null; rooms?: { number?: string } | null }) => ({
+        ((departureBkgs ?? []) as unknown as { id: string; guests?: { full_name?: string } | null; rooms?: { number?: string } | null }[]).map(b => ({
           id: b.id,
           guest: (b.guests as { full_name?: string } | null)?.full_name ?? 'Guest',
           room: (b.rooms as { number?: string } | null)?.number ?? '—',
