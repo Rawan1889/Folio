@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Cairo:wght@400;500;600;700&family=Amiri:ital,wght@0,400;0,700;1,400&display=swap');
 @import "tailwindcss";
 
 :root {
@@ -79,6 +79,17 @@ body::before {
 .tile .text-xs {
   color: rgba(0, 0, 0, 0.7) !important;
   font-weight: 700 !important;
+}
+
+/* RTL adjustments for Arabic */
+html[dir="rtl"] {
+  font-family: system-ui, -apple-system, 'Cairo', 'DM Sans', sans-serif;
+}
+html[dir="rtl"] .serif {
+  font-family: 'Amiri', 'Cormorant Garamond', serif;
+}
+html[dir="rtl"] .serif-italic {
+  font-style: normal;
 }
 
 .tile-icon-btn {

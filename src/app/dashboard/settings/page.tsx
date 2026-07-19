@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Loader2, Save, Hotel, Globe, User, KeyRound } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/Toast'
+import { useT } from '@/lib/i18n/context'
 
 type Hotel = {
   id: string
@@ -58,6 +59,7 @@ export default function SettingsPage() {
 
   const { toast } = useToast()
   const supabase = createClient()
+  const { t, locale, setLocale } = useT()
 
   useEffect(() => {
     async function init() {
@@ -155,9 +157,9 @@ export default function SettingsPage() {
     <div className="space-y-5 max-w-3xl">
       <div>
         <h1 className="text-3xl serif" style={{ color: 'var(--cream)' }}>
-          Set<span className="serif-italic">tings</span>
+          {t('settings_title')}
         </h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>Hotel configuration & preferences</p>
+        <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>{t('settings_subtitle')}</p>
       </div>
 
       {/* Hotel Info */}
@@ -166,31 +168,31 @@ export default function SettingsPage() {
           <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--tile-orange)' }}>
             <Hotel size={13} style={{ color: '#1a1a1a' }} />
           </div>
-          <h2 className="text-sm font-semibold" style={{ color: 'var(--cream)' }}>Hotel Info</h2>
+          <h2 className="text-sm font-semibold" style={{ color: 'var(--cream)' }}>{t('hotel_info')}</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="md:col-span-2">
-            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>Hotel Name</label>
+            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>{t('hotel_name')}</label>
             <input value={hotelName} onChange={e => setHotelName(e.target.value)} required className="w-full px-3.5 py-2.5 rounded-xl text-sm outline-none" style={inputStyle} />
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>Phone</label>
+            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>{t('phone')}</label>
             <input value={phone} onChange={e => setPhone(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl text-sm outline-none" style={inputStyle} />
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>Email</label>
+            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>{t('email')}</label>
             <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl text-sm outline-none" style={inputStyle} />
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>City</label>
+            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>{t('city')}</label>
             <input value={city} onChange={e => setCity(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl text-sm outline-none" style={inputStyle} />
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>Country</label>
+            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>{t('country')}</label>
             <input value={country} onChange={e => setCountry(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl text-sm outline-none" style={inputStyle} />
           </div>
           <div className="md:col-span-2">
-            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>Address</label>
+            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>{t('address')}</label>
             <input value={address} onChange={e => setAddress(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl text-sm outline-none" style={inputStyle} />
           </div>
         </div>
@@ -209,33 +211,35 @@ export default function SettingsPage() {
           <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--tile-blue)' }}>
             <Globe size={13} style={{ color: '#1a1a1a' }} />
           </div>
-          <h2 className="text-sm font-semibold" style={{ color: 'var(--cream)' }}>Localization & Operations</h2>
+          <h2 className="text-sm font-semibold" style={{ color: 'var(--cream)' }}>{t('localization')}</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>Currency</label>
+            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>{t('currency')}</label>
             <select value={currency} onChange={e => setCurrency(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl text-sm outline-none" style={inputStyle}>
               {['USD', 'IQD', 'EUR', 'AED', 'GBP', 'SAR'].map(c => <option key={c}>{c}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>Timezone</label>
+            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>{t('timezone')}</label>
             <select value={timezone} onChange={e => setTimezone(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl text-sm outline-none" style={inputStyle}>
               {['Asia/Baghdad', 'Asia/Dubai', 'Asia/Riyadh', 'Europe/London', 'UTC'].map(t => <option key={t}>{t}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>Language</label>
-            <select className="w-full px-3.5 py-2.5 rounded-xl text-sm outline-none" style={inputStyle}>
-              {['English', 'العربية', 'کوردی'].map(l => <option key={l}>{l}</option>)}
+            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>{t('language')}</label>
+            <select value={locale} onChange={e => { setLocale(e.target.value as 'en' | 'ar'); toast(e.target.value === 'ar' ? 'تم تغيير اللغة إلى العربية' : 'Language changed to English') }}
+              className="w-full px-3.5 py-2.5 rounded-xl text-sm outline-none" style={inputStyle}>
+              <option value="en">English</option>
+              <option value="ar">العربية</option>
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>Check-in Time</label>
+            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>{t('check_in_time')}</label>
             <input type="time" value={checkInTime} onChange={e => setCheckInTime(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl text-sm outline-none" style={inputStyle} />
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>Check-out Time</label>
+            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>{t('check_out_time')}</label>
             <input type="time" value={checkOutTime} onChange={e => setCheckOutTime(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl text-sm outline-none" style={inputStyle} />
           </div>
         </div>
@@ -253,10 +257,10 @@ export default function SettingsPage() {
           <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--tile-purple)' }}>
             <User size={13} style={{ color: '#1a1a1a' }} />
           </div>
-          <h2 className="text-sm font-semibold" style={{ color: 'var(--cream)' }}>Your Profile</h2>
+          <h2 className="text-sm font-semibold" style={{ color: 'var(--cream)' }}>{t('your_profile')}</h2>
         </div>
         <div>
-          <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>Full Name</label>
+          <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>{t('full_name')}</label>
           <input value={fullName} onChange={e => setFullName(e.target.value)} className="w-full max-w-sm px-3.5 py-2.5 rounded-xl text-sm outline-none" style={inputStyle} />
         </div>
         {profile && (
@@ -278,17 +282,17 @@ export default function SettingsPage() {
           <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--tile-orange)' }}>
             <KeyRound size={13} style={{ color: '#1a1a1a' }} />
           </div>
-          <h2 className="text-sm font-semibold" style={{ color: 'var(--cream)' }}>Change Password</h2>
+          <h2 className="text-sm font-semibold" style={{ color: 'var(--cream)' }}>{t('change_password')}</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>New Password</label>
+            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>{t('new_password')}</label>
             <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)}
               autoComplete="new-password" minLength={6} placeholder="Min 6 characters"
               className="w-full px-3.5 py-2.5 rounded-xl text-sm outline-none" style={inputStyle} />
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>Confirm Password</label>
+            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--muted)' }}>{t('confirm_password')}</label>
             <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
               autoComplete="new-password"
               className="w-full px-3.5 py-2.5 rounded-xl text-sm outline-none" style={inputStyle} />

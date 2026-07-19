@@ -6,23 +6,25 @@ import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { LayoutDashboard, BedDouble, CalendarDays, Users, Receipt, BarChart3, Settings, Hotel, LogOut, Menu, Plus, ChevronDown, Check, LayoutGrid, Search, UserCheck, Sparkles, Moon, Users2, Tag, Globe } from 'lucide-react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
+import { useT } from '@/lib/i18n/context'
+import type { TranslationKey } from '@/lib/i18n/translations'
 
-const nav = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/dashboard/checkin', label: 'Check-in', icon: UserCheck },
-  { href: '/dashboard/rooms/board', label: 'Room Board', icon: LayoutGrid },
-  { href: '/dashboard/rooms', label: 'Rooms', icon: BedDouble },
-  { href: '/dashboard/bookings', label: 'Bookings', icon: CalendarDays },
-  { href: '/dashboard/guests', label: 'Guests', icon: Users },
-  { href: '/dashboard/search', label: 'Search', icon: Search },
-  { href: '/dashboard/housekeeping', label: 'Housekeeping', icon: Sparkles },
-  { href: '/dashboard/audit', label: 'Night Audit', icon: Moon },
-  { href: '/dashboard/finance', label: 'Finance', icon: Receipt },
-  { href: '/dashboard/rates', label: 'Rate Plans', icon: Tag },
-  { href: '/dashboard/channels', label: 'Channels', icon: Globe },
-  { href: '/dashboard/staff', label: 'Staff', icon: Users2 },
-  { href: '/dashboard/reports', label: 'Reports', icon: BarChart3 },
-  { href: '/dashboard/settings', label: 'Settings', icon: Settings },
+const nav: { href: string; labelKey: TranslationKey; icon: typeof LayoutDashboard }[] = [
+  { href: '/dashboard', labelKey: 'nav_dashboard', icon: LayoutDashboard },
+  { href: '/dashboard/checkin', labelKey: 'nav_checkin', icon: UserCheck },
+  { href: '/dashboard/rooms/board', labelKey: 'nav_room_board', icon: LayoutGrid },
+  { href: '/dashboard/rooms', labelKey: 'nav_rooms', icon: BedDouble },
+  { href: '/dashboard/bookings', labelKey: 'nav_bookings', icon: CalendarDays },
+  { href: '/dashboard/guests', labelKey: 'nav_guests', icon: Users },
+  { href: '/dashboard/search', labelKey: 'nav_search', icon: Search },
+  { href: '/dashboard/housekeeping', labelKey: 'nav_housekeeping', icon: Sparkles },
+  { href: '/dashboard/audit', labelKey: 'nav_night_audit', icon: Moon },
+  { href: '/dashboard/finance', labelKey: 'nav_finance', icon: Receipt },
+  { href: '/dashboard/rates', labelKey: 'nav_rate_plans', icon: Tag },
+  { href: '/dashboard/channels', labelKey: 'nav_channels', icon: Globe },
+  { href: '/dashboard/staff', labelKey: 'nav_staff', icon: Users2 },
+  { href: '/dashboard/reports', labelKey: 'nav_reports', icon: BarChart3 },
+  { href: '/dashboard/settings', labelKey: 'nav_settings', icon: Settings },
 ]
 
 interface SidebarProps {
@@ -35,6 +37,7 @@ interface SidebarProps {
 export default function Sidebar({ hotelName = 'No Hotel', userName = 'Admin', isSuperAdmin, hotelId }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const { t } = useT()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [hotelPickerOpen, setHotelPickerOpen] = useState(false)
   const [allHotels, setAllHotels] = useState<{ id: string; name: string }[]>([])
@@ -89,13 +92,13 @@ export default function Sidebar({ hotelName = 'No Hotel', userName = 'Admin', is
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold truncate" style={{ color: 'var(--cream)' }}>{userName}</p>
-          {isSuperAdmin && <p className="text-[10px]" style={{ color: 'var(--amber)' }}>Super Admin</p>}
+          {isSuperAdmin && <p className="text-[10px]" style={{ color: 'var(--amber)' }}>{t('nav_super_admin')}</p>}
         </div>
       </div>
 
       {/* Hotel section header */}
       <div className="flex items-center justify-between px-2 mt-2">
-        <span className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>Hotel</span>
+        <span className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>{t('nav_hotel')}</span>
         <button className="w-5 h-5 rounded-md flex items-center justify-center transition-colors hover:bg-white/10" style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--muted)' }}>
           <Plus size={11} />
         </button>
@@ -138,7 +141,7 @@ export default function Sidebar({ hotelName = 'No Hotel', userName = 'Admin', is
 
       {/* Nav section header */}
       <div className="px-2 mt-3">
-        <span className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>Menu</span>
+        <span className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>{t('nav_menu')}</span>
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto">
@@ -147,7 +150,7 @@ export default function Sidebar({ hotelName = 'No Hotel', userName = 'Admin', is
           const bestMatch = nav
             .filter(n => pathname === n.href || (n.href !== '/dashboard' && pathname.startsWith(n.href + '/')))
             .sort((a, b) => b.href.length - a.href.length)[0]?.href
-          return nav.map(({ href, label, icon: Icon }) => {
+          return nav.map(({ href, labelKey, icon: Icon }) => {
             const active = href === bestMatch
             return (
               <Link
@@ -161,7 +164,7 @@ export default function Sidebar({ hotelName = 'No Hotel', userName = 'Admin', is
                 }
               >
                 <Icon size={16} />
-                {label}
+                {t(labelKey)}
               </Link>
             )
           })
@@ -170,7 +173,7 @@ export default function Sidebar({ hotelName = 'No Hotel', userName = 'Admin', is
         {isSuperAdmin && (
           <>
             <div className="pt-4 pb-1 px-3">
-              <p className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--muted-2)' }}>Super Admin</p>
+              <p className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--muted-2)' }}>{t('nav_super_admin')}</p>
             </div>
             <Link
               href="/dashboard/hotels"
@@ -179,7 +182,7 @@ export default function Sidebar({ hotelName = 'No Hotel', userName = 'Admin', is
               style={{ color: 'var(--muted)' }}
             >
               <Hotel size={16} />
-              All Hotels
+              {t('nav_all_hotels')}
             </Link>
           </>
         )}
@@ -190,7 +193,7 @@ export default function Sidebar({ hotelName = 'No Hotel', userName = 'Admin', is
         className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors hover:bg-white/[0.04]"
         style={{ color: 'var(--muted)' }}>
         <LogOut size={16} />
-        Log out
+        {t('nav_log_out')}
       </button>
     </div>
   )
